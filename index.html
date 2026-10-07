@@ -1,0 +1,1939 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ドローン資格ナビ</title>
+<meta name="description" content="無人航空機操縦士(ドローン国家資格)一等・二等の学科試験対策アプリ。カテゴリ別学習とタイマー付き模擬試験に対応。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Murecho:wght@400;500;600;700;800&family=Orbitron:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#080B10;
+  --paper:#111820;
+  --paper-2:#161F29;
+  --ink:#EAF4F7;
+  --ink-soft:#8496A6;
+  --ink-faint:#4E5F6E;
+  --line:#263442;
+  --line-soft:#1A2430;
+  --accent:#00E6C4;
+  --accent-ink:#03201B;
+  --accent-glow:rgba(0,230,196,.5);
+  --accent-soft:rgba(0,230,196,.12);
+  --good:#37E58D;
+  --good-soft:rgba(55,229,141,.14);
+  --bad:#FF4D6A;
+  --bad-soft:rgba(255,77,106,.14);
+  --warn:#FFB020;
+  --warn-soft:rgba(255,176,32,.14);
+  --gold:#FFD447;
+  --cat-rule:#FF5C8A;
+  --cat-system:#4FC3F7;
+  --cat-ops:#7ED957;
+  --cat-risk:#FFB020;
+  --tier-platinum:#DCEEF2;
+  --tier-platinum-glow:rgba(220,238,242,.55);
+  --tier-gold:#FFD447;
+  --tier-gold-glow:rgba(255,212,71,.55);
+  --tier-silver:#C7D2DA;
+  --tier-silver-glow:rgba(199,210,218,.45);
+  --tier-bronze:#D98F4E;
+  --tier-bronze-glow:rgba(217,143,78,.55);
+  --shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 14px 34px -16px rgba(0,0,0,.8);
+  --radius:12px;
+  --cut:16px;
+  --font-jp:'Murecho', -apple-system, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  --font-disp:'Orbitron', var(--font-jp);
+  --font-mono:'JetBrains Mono', ui-monospace, monospace;
+}
+/* 一等モード：アクセントをアンバー(レーシング系)に切替 */
+:root.lvl1{
+  --accent:#FF8A2B;
+  --accent-ink:#2B1200;
+  --accent-glow:rgba(255,138,43,.5);
+  --accent-soft:rgba(255,138,43,.14);
+}
+*{box-sizing:border-box;}
+body{
+  background:
+    radial-gradient(circle at 12% -10%, rgba(0,230,196,.10), transparent 42%),
+    radial-gradient(circle at 106% 0%, rgba(255,138,43,.07), transparent 38%),
+    repeating-linear-gradient(180deg, rgba(255,255,255,.014) 0px, rgba(255,255,255,.014) 1px, transparent 1px, transparent 3px),
+    var(--bg);
+  color:var(--ink);
+  font-family:var(--font-jp);
+  margin:0;
+  padding-inline:16px;
+  padding-block:20px 100px;
+  min-height:100%;
+}
+.wrap{max-width:760px;margin:0 auto;}
+h1,h2,h3{text-wrap:balance;margin:0;}
+button{font-family:inherit;cursor:pointer;}
+a{color:var(--accent);}
+
+/* 角を斜めに落とすHUDパネル形状ユーティリティ */
+.hero,.action-btn,.cat-tile,.stat-tile,.iconbtn,.timer,.combo-chip,.qcard,.choice,.choice .num,
+.btn,.qgrid button,.result-hero,.pill,.level-switch,.level-switch button,.brand-mark,
+.ach-summary,.ach-card,.ach-toast,
+.ta-diff-card,.ta-timer-big,.ta-newbest,.confirm-box{
+  clip-path:polygon(var(--nx,8px) 0,100% 0,100% calc(100% - var(--nx,8px)),calc(100% - var(--nx,8px)) 100%,0 100%,0 var(--nx,8px));
+}
+
+/* ---------- Header ---------- */
+.appbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:4px 18px;}
+.brand{display:flex;align-items:center;gap:11px;}
+.brand-mark{
+  --nx:8px; width:40px;height:40px;background:var(--accent);color:var(--accent-ink);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  box-shadow:0 0 18px -3px var(--accent-glow);
+}
+.brand-name{font-family:var(--font-disp);font-weight:700;font-size:16px;letter-spacing:.02em;color:var(--ink);}
+.brand-sub{font-size:10px;color:var(--ink-soft);letter-spacing:.09em;font-family:var(--font-mono);text-transform:uppercase;}
+.level-switch{
+  --nx:8px; display:flex;background:var(--paper);border:1px solid var(--line);padding:3px;gap:2px;
+  box-shadow:var(--shadow);
+}
+.level-switch button{
+  --nx:6px; border:none;background:transparent;color:var(--ink-soft);font-weight:700;font-size:12px;
+  font-family:var(--font-disp);letter-spacing:.03em;padding:8px 15px;transition:.15s;
+}
+.level-switch button.active{background:var(--accent);color:var(--accent-ink);box-shadow:0 0 14px -3px var(--accent-glow);}
+
+/* ---------- Cards / sections ---------- */
+.card{background:var(--paper);border:1px solid var(--line-soft);border-radius:var(--radius);box-shadow:var(--shadow);}
+.section{margin-block:16px;}
+.eyebrow{
+  font-family:var(--font-disp);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:7px;display:block;
+}
+
+/* ---------- Dashboard ---------- */
+.hero{--nx:18px; padding:22px 20px;display:flex;flex-direction:column;gap:15px;border-top:2px solid var(--accent);background:var(--paper);box-shadow:var(--shadow);}
+.hero-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.hero-title{font-size:20px;font-weight:800;}
+.pill{
+  --nx:6px; display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;
+  font-family:var(--font-disp);letter-spacing:.03em;padding:5px 11px;background:var(--accent-soft);color:var(--accent);
+}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.stat-tile{--nx:7px; background:var(--paper-2);border:1px solid var(--line-soft);padding:11px 12px;}
+.stat-num{font-family:var(--font-disp);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums;color:var(--ink);}
+.stat-label{font-size:10px;color:var(--ink-soft);margin-top:3px;font-family:var(--font-mono);letter-spacing:.01em;}
+.exam-meta{
+  display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--ink-soft);font-family:var(--font-mono);
+  border-top:1px dashed var(--line);padding-top:13px;
+}
+.exam-meta b{color:var(--accent);font-variant-numeric:tabular-nums;}
+
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.action-btn{
+  --nx:10px; border:1px solid var(--line-soft);background:var(--paper);
+  padding:16px 15px;text-align:left;display:flex;flex-direction:column;gap:6px;
+  box-shadow:var(--shadow);transition:transform .12s,box-shadow .12s;
+}
+.action-btn:active{transform:scale(.97);}
+.action-btn .ic{font-family:var(--font-disp);font-size:10px;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;}
+.action-btn .ttl{font-weight:700;font-size:14.5px;color:var(--ink);}
+.action-btn .desc{font-size:11.5px;color:var(--ink-soft);line-height:1.5;}
+.action-btn.primary{background:var(--accent);border-color:var(--accent);box-shadow:0 0 26px -6px var(--accent-glow),var(--shadow);}
+.action-btn.primary .ic{color:var(--accent-ink);opacity:.75;}
+.action-btn.primary .ttl,.action-btn.primary .desc{color:var(--accent-ink);}
+
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.cat-tile{
+  --nx:8px; border:1px solid var(--line-soft);padding:13px;background:var(--paper);
+  display:flex;flex-direction:column;gap:8px;text-align:left;box-shadow:var(--shadow);
+}
+.cat-tile .name{font-weight:700;font-size:13.5px;color:var(--ink);}
+.cat-bar{height:5px;background:var(--bg);overflow:hidden;}
+.cat-bar > i{display:block;height:100%;}
+.cat-tile .pct{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+
+/* ---------- Study / Quiz view ---------- */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+.iconbtn{
+  --nx:6px; border:1px solid var(--line-soft);background:var(--paper);
+  width:37px;height:37px;display:flex;align-items:center;justify-content:center;color:var(--ink);
+}
+.progress-label{font-family:var(--font-mono);font-size:12.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+.timer{
+  --nx:6px; font-family:var(--font-disp);font-weight:700;font-size:15px;padding:8px 14px;
+  background:var(--paper-2);color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:.03em;
+  border:1px solid var(--line-soft);box-shadow:0 0 14px -4px var(--accent-glow);
+}
+.timer.warn{background:var(--warn-soft);color:var(--warn);box-shadow:0 0 14px -4px rgba(255,176,32,.5);}
+.timer.danger{background:var(--bad-soft);color:var(--bad);box-shadow:0 0 16px -3px rgba(255,77,106,.65);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+.combo-chip{
+  --nx:6px; display:inline-flex;align-items:center;gap:5px;font-family:var(--font-disp);font-size:11px;font-weight:700;
+  color:var(--gold);background:rgba(255,212,71,.12);border:1px solid rgba(255,212,71,.4);
+  padding:6px 11px;letter-spacing:.03em;animation:comboPop .3s ease;
+}
+@keyframes comboPop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+
+.track{height:6px;background:var(--line-soft);overflow:hidden;margin-bottom:18px;}
+.track > i{display:block;height:100%;background:var(--accent);transition:width .2s;box-shadow:0 0 8px var(--accent-glow);}
+
+.qcard{--nx:16px; padding:20px;position:relative;border-top:2px solid var(--accent);background:var(--paper);box-shadow:var(--shadow);}
+.qcard.flash-good{animation:flashGood .55s ease;}
+.qcard.flash-bad{animation:flashBad .45s ease;}
+@keyframes flashGood{
+  0%{box-shadow:0 0 0 0 rgba(55,229,141,0),var(--shadow);}
+  30%{box-shadow:0 0 0 3px var(--good),0 0 34px 6px rgba(55,229,141,.5),var(--shadow);}
+  100%{box-shadow:var(--shadow);}
+}
+@keyframes flashBad{
+  0%,100%{transform:translateX(0);}
+  20%{transform:translateX(-6px);} 40%{transform:translateX(5px);}
+  60%{transform:translateX(-3px);} 80%{transform:translateX(2px);}
+}
+.qcat{font-family:var(--font-disp);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:9px;}
+.qtext{font-size:15.5px;font-weight:500;line-height:1.65;margin-bottom:17px;color:var(--ink);}
+.choices{display:flex;flex-direction:column;gap:9px;}
+.choice{
+  --nx:8px; border:1px solid var(--line);background:var(--paper-2);padding:12px 14px;
+  display:flex;gap:11px;align-items:flex-start;text-align:left;font-size:14px;line-height:1.55;color:var(--ink);
+  transition:border-color .12s,background .12s;
+}
+.choice .num{
+  --nx:4px; font-family:var(--font-mono);font-weight:700;font-size:11px;color:var(--ink-soft);
+  width:21px;height:21px;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
+}
+.choice.selected{border-color:var(--accent);background:var(--accent-soft);}
+.choice.selected .num{border-color:var(--accent);color:var(--accent);background:var(--paper);}
+.choice.correct{border-color:var(--good);background:var(--good-soft);animation:popIn .35s ease;}
+.choice.correct .num{border-color:var(--good);color:var(--good);background:var(--paper);}
+.choice.wrong{border-color:var(--bad);background:var(--bad-soft);}
+.choice.wrong .num{border-color:var(--bad);color:var(--bad);background:var(--paper);}
+@keyframes popIn{0%{transform:scale(.96)}55%{transform:scale(1.018)}100%{transform:scale(1)}}
+
+.explain{
+  margin-top:15px;padding:13px 14px;background:var(--paper-2);color:var(--ink);
+  font-size:13px;line-height:1.65;border:1px solid var(--line-soft);border-left:3px solid var(--accent);
+}
+.explain b{color:var(--accent);font-family:var(--font-disp);letter-spacing:.02em;font-size:12.5px;}
+
+.navrow{display:flex;gap:10px;margin-top:16px;}
+.btn{
+  --nx:8px; border:1px solid var(--line);background:var(--paper);color:var(--ink);
+  padding:12px 16px;font-weight:700;font-size:13.5px;flex:1;text-align:center;transition:transform .1s;
+}
+.btn:active{transform:scale(.97);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:0 0 20px -6px var(--accent-glow);}
+.btn.ghost{background:transparent;}
+.btn[disabled]{opacity:.4;}
+.btn.small{flex:none;padding:10px 13px;font-size:12.5px;}
+
+.qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:6px;margin:14px 0;}
+.qgrid button{
+  --nx:4px; aspect-ratio:1;border:1px solid var(--line);background:var(--paper-2);
+  font-family:var(--font-mono);font-size:11px;color:var(--ink-soft);font-variant-numeric:tabular-nums;
+}
+.qgrid button.answered{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);}
+.qgrid button.flagged{border-color:var(--warn);color:var(--warn);}
+.qgrid button.current{outline:2px solid var(--accent);outline-offset:1px;}
+
+/* ---------- Results ---------- */
+.result-hero{--nx:18px; padding:28px 20px;text-align:center;position:relative;border-top:2px solid var(--accent);background:var(--paper);box-shadow:var(--shadow);overflow:hidden;}
+.score-ring{width:152px;height:152px;margin:0 auto 14px;position:relative;filter:drop-shadow(0 0 18px var(--accent-glow));}
+.score-num{font-family:var(--font-disp);font-weight:700;font-size:28px;color:var(--ink);}
+.score-den{font-size:11px;color:var(--ink-soft);font-family:var(--font-mono);}
+.score-ring .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.verdict{font-family:var(--font-disp);font-size:18px;font-weight:700;letter-spacing:.03em;margin-top:5px;}
+.verdict.pass{color:var(--good);text-shadow:0 0 18px rgba(55,229,141,.5);}
+.verdict.fail{color:var(--bad);}
+.result-sub{color:var(--ink-soft);font-size:12px;margin-top:5px;font-family:var(--font-mono);}
+
+.breakdown{padding:16px;}
+.bd-row{display:flex;align-items:center;gap:10px;padding-block:9px;}
+.bd-row + .bd-row{border-top:1px solid var(--line-soft);}
+.bd-name{width:80px;flex-shrink:0;font-size:12px;font-weight:700;color:var(--ink);}
+.bd-bar{flex:1;height:7px;background:var(--bg);overflow:hidden;}
+.bd-bar > i{display:block;height:100%;}
+.bd-frac{font-family:var(--font-mono);font-size:11px;color:var(--ink-soft);width:44px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums;}
+
+.review-item{padding:14px 16px;}
+.review-item + .review-item{border-top:1px solid var(--line-soft);}
+.review-q{font-size:13px;font-weight:500;margin-bottom:8px;line-height:1.55;color:var(--ink);}
+.review-choice{font-size:11.5px;padding:7px 10px;margin-bottom:5px;display:flex;gap:8px;}
+.review-choice.correct{background:var(--good-soft);color:var(--good);}
+.review-choice.wrong{background:var(--bad-soft);color:var(--bad);}
+.review-exp{font-size:11.5px;color:var(--ink-soft);margin-top:6px;line-height:1.6;}
+
+/* ---------- Confetti (合格演出) ---------- */
+.confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+.confetti i{position:absolute;top:-8%;width:7px;height:12px;opacity:.9;animation:confettiFall 2.1s ease-in forwards;}
+@keyframes confettiFall{
+  0%{transform:translateY(0) rotate(0deg);opacity:1;}
+  100%{transform:translateY(230px) rotate(360deg);opacity:0;}
+}
+
+/* ---------- Misc ---------- */
+.empty{padding:30px 20px;text-align:center;color:var(--ink-soft);font-size:13px;}
+.disclaimer{
+  font-size:10.5px;color:var(--ink-faint);line-height:1.7;padding:14px 16px;
+  border:1px dashed var(--line);margin-top:22px;
+}
+.disclaimer b{color:var(--ink-soft);}
+.badge-lv1{
+  font-family:var(--font-mono);font-size:9.5px;font-weight:700;color:var(--warn);
+  background:var(--warn-soft);padding:2px 6px;margin-left:6px;border:1px solid rgba(255,176,32,.35);
+}
+.confirm-list{list-style:none;padding:0;margin:14px 0;display:flex;flex-direction:column;gap:8px;}
+.confirm-list li{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-soft);border-bottom:1px dashed var(--line-soft);padding-bottom:8px;}
+.confirm-list li b{font-family:var(--font-mono);color:var(--accent);font-variant-numeric:tabular-nums;}
+[hidden]{display:none!important;}
+.view{animation:fade .2s ease;}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;}
+}
+
+/* ---------------- Opening splash ---------------- */
+#splash{
+  position:fixed; inset:0; z-index:100;
+  background:
+    radial-gradient(circle at 12% -10%, rgba(0,230,196,.12), transparent 42%),
+    radial-gradient(circle at 106% 0%, rgba(255,138,43,.09), transparent 38%),
+    repeating-linear-gradient(180deg, rgba(255,255,255,.014) 0px, rgba(255,255,255,.014) 1px, transparent 1px, transparent 3px),
+    var(--bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:22px;
+  padding-top:clamp(56px,16vh,150px); overflow:hidden; padding-inline:16px;
+  -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; user-select:none;
+}
+#splash *{-webkit-tap-highlight-color:transparent;}
+#splash.ready{cursor:pointer;}
+#splash[hidden]{display:none!important;}
+#splash.leaving{animation:splashOut .55s ease forwards;pointer-events:none;}
+@keyframes splashOut{to{opacity:0;transform:scale(1.03);}}
+#splashBadge{
+  --nx:5px; font-family:var(--font-disp); font-size:11px; font-weight:600; letter-spacing:.1em;
+  color:var(--accent); background:var(--accent-soft); border:1px solid var(--accent-soft);
+  padding:5px 14px;
+  clip-path:polygon(var(--nx) 0,100% 0,100% calc(100% - var(--nx)),calc(100% - var(--nx)) 100%,0 100%,0 var(--nx));
+  opacity:0; animation:badgeIn .5s ease .15s forwards;
+}
+@keyframes badgeIn{to{opacity:1;}}
+#dropStage{position:relative;width:100%;max-width:560px;height:clamp(120px,22vw,180px);flex-shrink:0;}
+#dropStage.css-mode{display:flex;align-items:flex-end;justify-content:center;gap:clamp(3px,1vw,6px);flex-wrap:nowrap;}
+.drop-char{
+  --nx:5px; position:absolute; top:0; left:0;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--paper-2); border:1px solid var(--accent); color:var(--ink);
+  font-family:var(--font-jp); font-weight:800;
+  box-shadow:0 0 16px -2px var(--accent-glow), var(--shadow);
+  clip-path:polygon(var(--nx) 0,100% 0,100% calc(100% - var(--nx)),calc(100% - var(--nx)) 100%,0 100%,0 var(--nx));
+  will-change:transform;
+}
+.drop-char.css-fall{
+  position:static;
+  animation:dropBounce .8s cubic-bezier(.34,1.56,.64,1) both;
+  animation-delay:var(--delay,0ms);
+}
+@keyframes dropBounce{
+  0%{transform:translateY(-160px) rotate(var(--rot,8deg));opacity:0;}
+  55%{transform:translateY(6px) rotate(0deg);opacity:1;}
+  72%{transform:translateY(-9px);}
+  86%{transform:translateY(3px);}
+  100%{transform:translateY(0);}
+}
+#splashSub{
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;color:var(--ink-soft);
+  text-transform:uppercase;opacity:0;transition:opacity .6s ease;text-align:center;padding:0 20px;
+}
+#splashSub.show{opacity:1;}
+#splashTap{
+  --nx:5px; position:absolute; left:50%; top:75%; transform:translate(-50%,-50%);
+  font-family:var(--font-disp); font-size:11.5px; letter-spacing:.14em;
+  color:var(--accent); text-transform:uppercase; padding:9px 20px; border:1px solid var(--accent-soft);
+  background:var(--accent-soft); white-space:nowrap;
+  clip-path:polygon(var(--nx) 0,100% 0,100% calc(100% - var(--nx)),calc(100% - var(--nx)) 100%,0 100%,0 var(--nx));
+  opacity:0; transition:opacity .5s ease;
+}
+#splashTap.show{opacity:1;animation:tapPulse 1.6s ease-in-out infinite;}
+@keyframes tapPulse{0%,100%{box-shadow:0 0 8px -2px var(--accent-glow);}50%{box-shadow:0 0 20px 2px var(--accent-glow);}}
+.wrap.app-enter{animation:appIn .5s ease;}
+@keyframes appIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@media (prefers-reduced-motion: reduce){
+  #splash{display:none!important;}
+}
+
+/* ---------------- アチーブメント (プロペラ実績) ---------------- */
+.ach-summary{
+  --nx:10px; display:flex; align-items:center; gap:14px; padding:15px 16px;
+  border:1px solid var(--line-soft); background:var(--paper); box-shadow:var(--shadow);
+}
+.ach-summary .propeller{flex-shrink:0;}
+.ach-summary-body{flex:1;min-width:0;}
+.ach-summary-title{font-weight:700;font-size:14.5px;color:var(--ink);}
+.ach-summary-count{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-soft);margin-top:2px;font-variant-numeric:tabular-nums;}
+.ach-summary-bar{height:5px;background:var(--bg);overflow:hidden;margin-top:8px;}
+.ach-summary-bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--tier-bronze),var(--tier-gold));}
+
+.tier-section{margin-block:16px;}
+.tier-head{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.tier-head .propeller{flex-shrink:0;}
+.tier-head-name{font-family:var(--font-disp);font-size:12.5px;font-weight:700;letter-spacing:.08em;}
+.tier-head-count{font-family:var(--font-mono);font-size:11px;color:var(--ink-soft);margin-left:auto;font-variant-numeric:tabular-nums;}
+.tier-head.tier-platinum .tier-head-name{color:var(--tier-platinum);}
+.tier-head.tier-gold .tier-head-name{color:var(--tier-gold);}
+.tier-head.tier-silver .tier-head-name{color:var(--tier-silver);}
+.tier-head.tier-bronze .tier-head-name{color:var(--tier-bronze);}
+
+.ach-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ach-card{
+  --nx:9px; border:1px solid var(--line-soft); background:var(--paper); box-shadow:var(--shadow);
+  padding:13px; display:flex; flex-direction:column; gap:8px;
+}
+.ach-card .propeller{color:var(--ink-faint);opacity:.55;}
+.ach-card.unlocked{border-color:var(--tier-c,var(--line-soft));}
+.ach-card.unlocked .propeller{color:var(--tier-c,var(--ink));opacity:1;filter:drop-shadow(0 0 8px var(--tier-glow,transparent));}
+.ach-card-name{font-weight:700;font-size:13px;color:var(--ink);}
+.ach-card.locked .ach-card-name{color:var(--ink-faint);letter-spacing:.1em;}
+.ach-card-desc{font-size:11px;color:var(--ink-soft);line-height:1.55;}
+.ach-card.locked .ach-card-desc{color:var(--ink-faint);}
+.ach-card-date{font-family:var(--font-mono);font-size:9.5px;color:var(--ink-faint);letter-spacing:.03em;margin-top:auto;}
+
+.ach-toast{
+  --nx:10px; position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:50%; z-index:90;
+  display:flex; align-items:center; gap:11px; padding:12px 18px 12px 12px;
+  background:var(--paper); border:1px solid var(--tier-c,var(--accent));
+  box-shadow:0 0 26px -4px var(--tier-glow,var(--accent-glow)), var(--shadow);
+  max-width:calc(100vw - 32px);
+  animation:toastIn .4s cubic-bezier(.2,.9,.3,1.2) forwards;
+}
+.ach-toast[hidden]{display:none!important;}
+.ach-toast.leaving{animation:toastOut .35s ease forwards;}
+@keyframes toastIn{from{transform:translate(-50%,-140%);opacity:0;}to{transform:translate(-50%,0);opacity:1;}}
+@keyframes toastOut{to{transform:translate(-50%,-140%);opacity:0;}}
+.ach-toast-ic{color:var(--tier-c,var(--accent));filter:drop-shadow(0 0 8px var(--tier-glow,transparent));flex-shrink:0;}
+.ach-toast-eyebrow{font-family:var(--font-disp);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--tier-c,var(--accent));}
+.ach-toast-name{font-weight:700;font-size:13px;color:var(--ink);margin-top:2px;white-space:nowrap;}
+
+/* ---------------- 確認モーダル(ネイティブconfirm()の代替) ---------------- */
+.confirm-overlay{
+  position:fixed; inset:0; z-index:80; background:rgba(4,6,9,.62);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+.confirm-overlay[hidden]{display:none!important;}
+.confirm-box{
+  --nx:10px; width:100%; max-width:340px; background:var(--paper); border:1px solid var(--line-soft);
+  border-top:2px solid var(--accent); box-shadow:var(--shadow); padding:20px;
+  animation:comboPop .25s ease;
+}
+.confirm-msg{font-size:13.5px; line-height:1.7; color:var(--ink); white-space:pre-wrap; margin-bottom:16px;}
+.confirm-actions{display:flex; gap:10px;}
+
+/* ---------------- タイムアタックモード ---------------- */
+.ta-diff-grid{display:flex;flex-direction:column;gap:10px;}
+.ta-diff-card{
+  --nx:9px; border:1px solid var(--line-soft); background:var(--paper); box-shadow:var(--shadow);
+  padding:14px 15px; display:flex; align-items:center; gap:13px; text-align:left; width:100%;
+}
+.ta-diff-time{
+  font-family:var(--font-disp); font-weight:800; font-size:18px; color:var(--accent);
+  flex-shrink:0; width:66px; text-align:center; font-variant-numeric:tabular-nums;
+}
+.ta-diff-body{flex:1;min-width:0;}
+.ta-diff-name{font-weight:700;font-size:14px;color:var(--ink);}
+.ta-diff-desc{font-size:11px;color:var(--ink-soft);margin-top:2px;line-height:1.5;}
+.ta-diff-best{font-family:var(--font-mono);font-size:10.5px;color:var(--gold);margin-top:4px;}
+
+.ta-topbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.ta-timer-big{
+  --nx:8px; flex:1; text-align:center; font-family:var(--font-disp); font-weight:800;
+  font-size:32px; padding:10px; background:var(--paper-2); border:1px solid var(--line-soft);
+  color:var(--accent); box-shadow:0 0 20px -4px var(--accent-glow); font-variant-numeric:tabular-nums;
+  position:relative;
+}
+.ta-timer-big.warn{color:var(--warn);box-shadow:0 0 20px -4px rgba(255,176,32,.5);}
+.ta-timer-big.danger{color:var(--bad);box-shadow:0 0 22px -3px rgba(255,77,106,.65);animation:pulse .6s infinite;}
+.ta-score-row{display:flex;justify-content:center;gap:22px;margin-bottom:14px;font-family:var(--font-mono);font-size:12px;color:var(--ink-soft);}
+.ta-score-row b{color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums;}
+.ta-time-pop{
+  position:absolute; top:-8px; right:10px; font-family:var(--font-disp); font-size:13px; font-weight:700;
+  animation:timePopFloat .65s ease forwards; pointer-events:none;
+}
+.ta-time-pop.plus{color:var(--good);}
+.ta-time-pop.minus{color:var(--bad);}
+@keyframes timePopFloat{0%{transform:translateY(0);opacity:0;}20%{opacity:1;}100%{transform:translateY(-22px);opacity:0;}}
+
+.ta-newbest{
+  --nx:10px; text-align:center; padding:14px; margin-bottom:14px; background:var(--warn-soft);
+  border:1px solid var(--gold); color:var(--gold); font-family:var(--font-disp); font-weight:700;
+  font-size:14px; letter-spacing:.04em; box-shadow:0 0 26px -6px rgba(255,212,71,.5);
+  animation:comboPop .4s ease;
+}
+
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div id="splashBadge">一等・二等対応</div>
+  <div id="dropStage"></div>
+  <div id="splashSub">無人航空機操縦士 学科試験対策</div>
+  <div id="splashTap">tap to start</div>
+</div>
+
+<div class="wrap" id="mainWrap" hidden>
+
+  <div class="appbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="3.4" stroke="currentColor" stroke-width="2"/><circle cx="5.5" cy="5.5" r="2" fill="currentColor"/><circle cx="18.5" cy="5.5" r="2" fill="currentColor"/><circle cx="5.5" cy="18.5" r="2" fill="currentColor"/><circle cx="18.5" cy="18.5" r="2" fill="currentColor"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">ドローン資格ナビ</div>
+        <div class="brand-sub">無人航空機操縦士 学科試験対策</div>
+      </div>
+    </div>
+    <div class="level-switch" role="tablist" aria-label="資格の等級">
+      <button id="lvBtn2" class="active" onclick="setLevel(2)">二等</button>
+      <button id="lvBtn1" onclick="setLevel(1)">一等</button>
+    </div>
+  </div>
+
+  <div id="app"></div>
+
+  <div class="disclaimer">
+    <b>ご利用にあたって</b>：本アプリの問題は、国土交通省「無人航空機の飛行の安全に関する教則」等の公表情報をもとに学習用として独自に作成したオリジナル問題であり、実際の学科試験の問題そのものではありません。出題範囲・出題数・合格基準・法令は改正されることがあるため、受験前に必ず<a href="https://www.mlit.go.jp/koku/license.html" target="_blank" rel="noopener">国土交通省の無人航空機操縦者技能証明サイト</a>で最新情報をご確認ください。
+  </div>
+</div>
+
+<div class="ach-toast" id="achToast" hidden>
+  <div class="ach-toast-ic" id="achToastIcon"></div>
+  <div class="ach-toast-body">
+    <div class="ach-toast-eyebrow" id="achToastTier">Trophy Unlocked</div>
+    <div class="ach-toast-name" id="achToastName"></div>
+  </div>
+</div>
+
+<div class="confirm-overlay" id="confirmOverlay" hidden onclick="if(event.target===this) closeConfirmModal(false)">
+  <div class="confirm-box">
+    <div class="confirm-msg" id="confirmMsg"></div>
+    <div class="confirm-actions">
+      <button class="btn" onclick="closeConfirmModal(false)">キャンセル</button>
+      <button class="btn primary" onclick="closeConfirmModal(true)">OK</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
+<script src="questions.js"></script>
+<script src="calc.js"></script>
+<script>
+/* ---------------- State ---------------- */
+const CATS = [
+  {id:'rule', name:'規則', full:'航空法・規則', color:'var(--cat-rule)'},
+  {id:'system', name:'システム', full:'機体システム', color:'var(--cat-system)'},
+  {id:'ops', name:'運航体制', full:'運航体制', color:'var(--cat-ops)'},
+  {id:'risk', name:'リスク管理', full:'リスク管理', color:'var(--cat-risk)'},
+];
+const EXAM_SPEC = {
+  2: {label:'二等', count:50, minutes:30, pass:0.8, passLabel:'80%'},
+  1: {label:'一等', count:70, minutes:75, pass:0.9, passLabel:'90%'},
+};
+const TA_LEVELS = [
+  {id:'L1', name:'レベル1', desc:'目視内・操縦者による操縦(基礎)', seconds:120},
+  {id:'L2', name:'レベル2', desc:'目視内・自動/自律飛行', seconds:90},
+  {id:'L3', name:'レベル3', desc:'無人地帯での目視外飛行', seconds:60},
+  {id:'L35', name:'レベル3.5', desc:'補助者なしの目視外飛行', seconds:30},
+  {id:'L4', name:'レベル4', desc:'有人地帯での目視外飛行(最難関)', seconds:15},
+];
+const TA_CALC_LEVELS = [
+  {id:'C1', name:'カテゴリーI', desc:'立入管理を行う、リスクの低い飛行', seconds:600},
+  {id:'C2A', name:'カテゴリーIIA', desc:'立入管理措置を講じたうえでの許可・承認飛行', seconds:300},
+  {id:'C2B', name:'カテゴリーIIB', desc:'一定条件のもと許可・承認の一部が不要な飛行', seconds:120},
+  {id:'C3', name:'カテゴリーIII', desc:'立入管理措置を講じない、最もリスクの高い飛行', seconds:60},
+];
+
+let state = {
+  level: 2,
+  view: 'home', // home | study | quiz | result
+  studyCat: null,
+  studyIdx: 0,
+  studyAnswered: null,
+  quiz: null, // {questions, answers, flags, idx, endAt, timerId, submitted}
+  lastResult: null,
+  streak: { study: 0, calc: 0 },
+  ta: null, // active time attack session
+  taPickerMode: 'normal',
+  taResult: null,
+};
+
+const $ = sel => document.querySelector(sel);
+const app = $('#app');
+
+function store(key, fallback){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; }
+}
+function saveStore(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
+}
+function progressKey(level){ return 'drone-exam-progress-v1-L'+level; }
+function historyKey(level){ return 'drone-exam-history-v1-L'+level; }
+
+function getProgress(level){
+  return store(progressKey(level), {}); // { [qid]: {correct:bool, seen:int} }
+}
+function setProgress(level, prog){ saveStore(progressKey(level), prog); }
+
+function getHistory(level){ return store(historyKey(level), []); }
+function pushHistory(level, entry){
+  const h = getHistory(level);
+  h.unshift(entry);
+  saveStore(historyKey(level), h.slice(0,10));
+}
+
+function poolFor(level){
+  // 二等は level==2 のみ。一等は level 1・2 両方（教則の全範囲）。
+  return QUESTIONS.filter(q => level === 1 ? true : q.level === 2);
+}
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+// 選択肢の並び順をシャッフルし、正解インデックスを再計算したコピーを返す
+function shuffleChoices(q, avoidPos){
+  let order, tries = 0;
+  do{
+    order = [0,1,2];
+    for(let i=order.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [order[i],order[j]]=[order[j],order[i]]; }
+    tries++;
+  } while(avoidPos!=null && order.indexOf(q.a)===avoidPos && tries<10);
+  return {...q, c: order.map(i=>q.c[i]), a: order.indexOf(q.a)};
+}
+function shuffleChoicesList(questions){
+  let lastPos = null;
+  return questions.map(q=>{
+    const shuffled = shuffleChoices(q, lastPos);
+    lastPos = shuffled.a;
+    return shuffled;
+  });
+}
+function fmtTime(sec){
+  sec = Math.max(0,sec);
+  const m = Math.floor(sec/60), s = sec%60;
+  return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+/* ---------------- 数字のカウントアップ演出 ---------------- */
+function prefersReducedMotion(){
+  try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; }
+}
+function animateCount(el, target){
+  if(prefersReducedMotion() || !target){ el.textContent = target; return; }
+  const duration = 700;
+  const start = performance.now();
+  function tick(now){
+    const t = Math.min(1, (now-start)/duration);
+    const eased = 1 - Math.pow(1-t, 3);
+    el.textContent = Math.round(target*eased);
+    if(t<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+function runCountUps(){
+  document.querySelectorAll('.countup').forEach(el=>{
+    animateCount(el, Number(el.dataset.target)||0);
+  });
+}
+function confettiHTML(){
+  if(prefersReducedMotion()) return '';
+  const colors = ['var(--accent)','var(--good)','var(--gold)','var(--cat-system)'];
+  let pieces = '';
+  for(let i=0;i<16;i++){
+    const left = Math.round(Math.random()*100);
+    const delay = (Math.random()*0.4).toFixed(2);
+    const color = colors[i%colors.length];
+    const rot = Math.round(Math.random()*40-20);
+    pieces += `<i style="left:${left}%;background:${color};animation-delay:${delay}s;transform:rotate(${rot}deg)"></i>`;
+  }
+  return `<div class="confetti">${pieces}</div>`;
+}
+
+/* ---------------- 確認モーダル ----------------
+   一部の環境(サンドボックス化されたiframe内など)ではブラウザ標準の
+   confirm()がダイアログを出さず反応しないことがあるため、
+   自前のモーダルUIで代替する。 */
+let confirmResolver = null;
+function showConfirm(message, onOk){
+  const overlay = document.getElementById('confirmOverlay');
+  const msgEl = document.getElementById('confirmMsg');
+  if(!overlay || !msgEl){ onOk && onOk(); return; }
+  msgEl.textContent = message;
+  overlay.hidden = false;
+  confirmResolver = onOk;
+}
+function closeConfirmModal(ok){
+  const overlay = document.getElementById('confirmOverlay');
+  if(overlay) overlay.hidden = true;
+  const fn = confirmResolver;
+  confirmResolver = null;
+  if(ok && fn) fn();
+}
+
+function setLevel(lv){
+  const doSwitch = ()=>{
+    if(state.quiz){ clearInterval(state.quiz.timerId); }
+    if(state.ta){ clearInterval(state.ta.timerId); clearTimeout(state.ta.advanceTimer); }
+    state.level = lv;
+    state.view = 'home';
+    state.quiz = null;
+    state.ta = null;
+    $('#lvBtn2').classList.toggle('active', lv===2);
+    $('#lvBtn1').classList.toggle('active', lv===1);
+    document.documentElement.classList.toggle('lvl1', lv===1);
+    render();
+  };
+  if(state.quiz && !state.quiz.submitted){
+    showConfirm('模擬試験を中断してよろしいですか？進行状況は失われます。', doSwitch);
+    return;
+  }
+  if(state.ta && !state.ta.ended){
+    showConfirm('タイムアタックを中断してよろしいですか？記録は保存されません。', doSwitch);
+    return;
+  }
+  doSwitch();
+}
+
+/* ---------------- Render root ---------------- */
+function render(){
+  renderView();
+}
+function renderView(){
+  if(state.view==='home') return renderHome();
+  if(state.view==='study') return renderStudyCatPicker();
+  if(state.view==='studyQ') return renderStudyQuestion();
+  if(state.view==='quizConfirm') return renderQuizConfirm();
+  if(state.view==='quiz') return renderQuiz();
+  if(state.view==='result') return renderResult();
+  if(state.view==='calcPicker') return renderCalcPicker();
+  if(state.view==='calc') return renderCalcQuestion();
+  if(state.view==='achievements') return renderAchievements();
+  if(state.view==='taPicker') return renderTAPicker();
+  if(state.view==='ta') return renderTA();
+  if(state.view==='taResult') return renderTAResult();
+}
+
+/* ---------------- Home ---------------- */
+function renderHome(){
+  const spec = EXAM_SPEC[state.level];
+  const pool = poolFor(state.level);
+  const prog = getProgress(state.level);
+  const seenIds = Object.keys(prog).filter(id => pool.some(q=>q.id===id));
+  const correctCount = seenIds.filter(id=>prog[id].correct).length;
+  const hist = getHistory(state.level);
+  const lastScore = hist[0] ? Math.round(hist[0].score/hist[0].total*100) : null;
+  const unlockedAchCount = Object.keys(getUnlocked()).length;
+
+  const catStats = CATS.map(c=>{
+    const catQs = pool.filter(q=>q.cat===c.id);
+    const seen = catQs.filter(q=>prog[q.id]).length;
+    const pct = catQs.length ? Math.round(seen/catQs.length*100) : 0;
+    return {...c, total:catQs.length, seen, pct};
+  });
+
+  app.innerHTML = `
+    <div class="view">
+      <div class="section card hero">
+        <div class="hero-top">
+          <div>
+            <span class="pill">${spec.label}無人航空機操縦士</span>
+            <div class="hero-title" style="margin-top:8px;">学科試験対策</div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-tile">
+            <div class="stat-num"><span class="countup" data-target="${seenIds.length}">0</span><span style="font-size:12px;color:var(--ink-soft);">/${pool.length}</span></div>
+            <div class="stat-label">学習した問題数</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-num">${seenIds.length ? `<span class="countup" data-target="${Math.round(correctCount/seenIds.length*100)}">0</span><span style="font-size:12px;">%</span>` : '–'}</div>
+            <div class="stat-label">これまでの正答率</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-num">${lastScore!==null ? `<span class="countup" data-target="${lastScore}">0</span><span style="font-size:12px;">%</span>` : '–'}</div>
+            <div class="stat-label">直近の模試スコア</div>
+          </div>
+        </div>
+        <div class="exam-meta">
+          <span>出題数 <b>${spec.count}問</b></span>
+          <span>試験時間 <b>${spec.minutes}分</b></span>
+          <span>合格基準 <b>正答率${spec.passLabel}</b></span>
+          <span>形式 <b>三肢択一(CBT)</b></span>
+        </div>
+      </div>
+
+      <div class="section">
+        <button class="ach-summary" style="width:100%;text-align:left;" onclick="openAchievements()">
+          ${propellerIcon(32)}
+          <div class="ach-summary-body">
+            <div class="ach-summary-title">アチーブメント</div>
+            <div class="ach-summary-count">${unlockedAchCount} / ${ACHIEVEMENTS.length} プロペラ解除</div>
+            <div class="ach-summary-bar"><i style="width:${Math.round(unlockedAchCount/ACHIEVEMENTS.length*100)}%"></i></div>
+          </div>
+        </button>
+      </div>
+
+      <div class="section">
+        <span class="eyebrow">はじめる</span>
+        <div class="action-grid">
+          <button class="action-btn primary" onclick="startQuizConfirm()">
+            <span class="ic">Mock Exam</span>
+            <span class="ttl">模擬試験を始める</span>
+            <span class="desc">${spec.count}問・${spec.minutes}分タイマー</span>
+          </button>
+          <button class="action-btn" onclick="openStudy()">
+            <span class="ic">Study</span>
+            <span class="ttl">科目別学習</span>
+            <span class="desc">解説付きで一問ずつ学ぶ</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="section">
+        <span class="eyebrow">チャレンジ</span>
+        <button class="action-btn" style="width:100%" onclick="openTAPicker('normal')">
+          <span class="ic">Time Attack</span>
+          <span class="ttl">タイムアタック</span>
+          <span class="desc">制限時間内に何問解けるか挑戦。正解で+2秒、誤答で-2秒。難易度はレベル1〜4(3.5含む)</span>
+        </button>
+      </div>
+
+      ${state.level===1 ? `
+      <div class="section">
+        <span class="eyebrow">一等限定</span>
+        <div class="action-grid">
+          <button class="action-btn" onclick="openCalcPicker()">
+            <span class="ic">Calculation Drill</span>
+            <span class="ttl">計算問題ドリル</span>
+            <span class="desc">5種類の公式をランダムな数値で反復練習</span>
+          </button>
+          <button class="action-btn" onclick="openTAPicker('calc')">
+            <span class="ic">Calc Time Attack</span>
+            <span class="ttl">計算タイムアタック</span>
+            <span class="desc">カテゴリーI〜IIIの制限時間で計算問題に挑戦</span>
+          </button>
+        </div>
+      </div>` : ''}
+
+      <div class="section">
+        <span class="eyebrow">科目別の学習状況</span>
+        <div class="cat-grid">
+          ${catStats.map(c=>`
+            <button class="cat-tile" onclick="openStudy('${c.id}')">
+              <span class="name">${c.name}</span>
+              <span class="cat-bar"><i style="width:${c.pct}%;background:${c.color}"></i></span>
+              <span class="pct">${c.seen}/${c.total}問 学習済み</span>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+
+      ${seenIds.length ? `
+      <div class="section">
+        <span class="eyebrow">復習</span>
+        <button class="action-btn" style="width:100%" onclick="openWeakReview()">
+          <span class="ic">Weak Points</span>
+          <span class="ttl">苦手問題を復習する (${seenIds.filter(id=>!prog[id].correct).length}問)</span>
+          <span class="desc">まだ正解できていない問題だけを出題</span>
+        </button>
+      </div>` : ''}
+
+      ${hist.length ? `
+      <div class="section">
+        <span class="eyebrow">模試の記録</span>
+        <div class="card" style="padding:4px 16px;">
+          ${hist.slice(0,5).map(h=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;${hist.indexOf(h)?'border-top:1px solid var(--line-soft);':''}">
+              <span style="font-size:12.5px;color:var(--ink-soft);">${h.date}</span>
+              <span style="font-family:var(--font-mono);font-weight:700;font-size:13.5px;">${h.score}/${h.total}</span>
+              <span class="pill" style="background:${h.score/h.total>=EXAM_SPEC[state.level].pass?'var(--good-soft)':'var(--bad-soft)'};color:${h.score/h.total>=EXAM_SPEC[state.level].pass?'var(--good)':'var(--bad)'}">${h.score/h.total>=EXAM_SPEC[state.level].pass?'合格':'不合格'}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>` : ''}
+    </div>
+  `;
+  runCountUps();
+}
+
+/* ---------------- Study mode ---------------- */
+function openStudy(catId){
+  state.studyCat = catId || CATS[0].id;
+  state.view = 'study';
+  render();
+}
+function renderStudyCatPicker(){
+  app.innerHTML = `
+    <div class="view">
+      <div class="topbar">
+        <button class="iconbtn" onclick="goHome()" aria-label="戻る">${backIcon()}</button>
+        <div class="progress-label">科目別学習</div>
+        <span style="width:36px"></span>
+      </div>
+      <div class="cat-grid">
+        ${CATS.map(c=>{
+          const pool = poolFor(state.level).filter(q=>q.cat===c.id);
+          return `<button class="cat-tile" style="text-align:center;align-items:center;" onclick="beginStudy('${c.id}')">
+            <span class="name">${c.name}</span>
+            <span class="pct">${pool.length}問</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+function beginStudy(catId){
+  const pool = shuffleChoicesList(shuffle(poolFor(state.level).filter(q=>q.cat===catId)));
+  state.study = {list: pool, idx:0, answers: new Array(pool.length).fill(null)};
+  state.streak.study = 0;
+  state.view='studyQ';
+  render();
+}
+function openWeakReview(){
+  const prog = getProgress(state.level);
+  const pool = poolFor(state.level).filter(q=> prog[q.id] && !prog[q.id].correct);
+  if(!pool.length){ return; }
+  const list = shuffleChoicesList(shuffle(pool));
+  state.study = {list, idx:0, answers: new Array(list.length).fill(null), weak:true};
+  state.streak.study = 0;
+  state.view='studyQ';
+  render();
+}
+function renderStudyQuestion(){
+  const st = state.study;
+  if(!st || !st.list.length){
+    app.innerHTML = `<div class="view empty card">この科目にはまだ問題がありません。</div>`;
+    return;
+  }
+  const q = st.list[st.idx];
+  const answered = st.answers[st.idx];
+  const flashClass = answered===null ? '' : (answered===q.a ? 'flash-good' : 'flash-bad');
+  app.innerHTML = `
+    <div class="view">
+      <div class="topbar">
+        <button class="iconbtn" onclick="goHome()" aria-label="戻る">${backIcon()}</button>
+        <div class="progress-label">${st.idx+1} / ${st.list.length}</div>
+        ${state.streak.study>=1 ? `<span class="combo-chip">${lightningIcon()} COMBO ×${state.streak.study}</span>` : '<span style="width:36px"></span>'}
+      </div>
+      <div class="track"><i style="width:${(st.idx)/st.list.length*100}%"></i></div>
+      <div class="card qcard ${flashClass}">
+        <div class="qcat">${catName(q.cat)}${q.level===1?'<span class="badge-lv1">一等</span>':''}</div>
+        <div class="qtext">${q.q}</div>
+        <div class="choices">
+          ${q.c.map((c,i)=>`
+            <button class="choice ${choiceClass(i,q,answered)}" ${answered!==null?'disabled':''} onclick="answerStudy(${i})">
+              <span class="num">${i+1}</span><span>${c}</span>
+            </button>`).join('')}
+        </div>
+        ${answered!==null ? `
+          <div class="explain">
+            <b>${answered===q.a?'正解！':'不正解'}</b>　${q.exp}
+          </div>
+        ` : ''}
+      </div>
+      <div class="navrow">
+        <button class="btn small" ${st.idx===0?'disabled':''} onclick="prevStudy()">1問戻る</button>
+        <button class="btn" onclick="goHome()">やめる</button>
+        <button class="btn primary" ${answered===null?'disabled':''} onclick="nextStudy()">${st.idx+1>=st.list.length ? '学習を終える' : '次の問題へ'}</button>
+      </div>
+    </div>
+  `;
+}
+function choiceClass(i,q,answered){
+  if(answered===null) return '';
+  if(i===q.a) return 'correct';
+  if(i===answered) return 'wrong';
+  return '';
+}
+function answerStudy(i){
+  const st = state.study;
+  if(st.answers[st.idx]!==null) return;
+  const q = st.list[st.idx];
+  st.answers[st.idx] = i;
+  const correct = i===q.a;
+  state.streak.study = correct ? state.streak.study+1 : 0;
+  const prog = getProgress(state.level);
+  prog[q.id] = {correct, seen:(prog[q.id]?.seen||0)+1};
+  setProgress(state.level, prog);
+  recordAnswer({correct, isReview: !!st.weak});
+  render();
+}
+function prevStudy(){
+  const st = state.study;
+  if(st.idx<=0) return;
+  st.idx--;
+  render();
+}
+function nextStudy(){
+  const st = state.study;
+  if(st.idx+1 >= st.list.length){ goHome(); return; }
+  st.idx++;
+  render();
+}
+
+/* ---------------- Calculation drill (一等限定) ---------------- */
+function calcStatsKey(){ return 'drone-exam-calc-stats-v1'; }
+function getCalcStats(){ return store(calcStatsKey(), {}); }
+function bumpCalcStats(typeId, correct){
+  const s = getCalcStats();
+  const cur = s[typeId] || {attempts:0, correct:0};
+  cur.attempts++; if(correct) cur.correct++;
+  s[typeId] = cur;
+  saveStore(calcStatsKey(), s);
+}
+function openCalcPicker(){ state.view='calcPicker'; render(); }
+function renderCalcPicker(){
+  const stats = getCalcStats();
+  app.innerHTML = `
+    <div class="view">
+      <div class="topbar">
+        <button class="iconbtn" onclick="goHome()" aria-label="戻る">${backIcon()}</button>
+        <div class="progress-label">計算問題ドリル</div>
+        <span style="width:36px"></span>
+      </div>
+      <div class="card" style="padding:16px;margin-bottom:14px;">
+        <p style="font-size:13px;color:var(--ink-soft);line-height:1.7;margin:0;">一等の学科試験で頻出とされる計算パターンを、毎回ランダムな数値で繰り返し練習できます。公式と解き方の手順も表示されます。</p>
+      </div>
+      <button class="action-btn primary" style="width:100%;margin-bottom:10px;" onclick="beginCalc(null)">
+        <span class="ic">All Types</span>
+        <span class="ttl">ランダム出題で始める</span>
+        <span class="desc">5種類のパターンを混ぜて出題</span>
+      </button>
+      <div class="cat-grid">
+        ${CALC_TYPES.map(t=>{
+          const s = stats[t.id];
+          const pct = s && s.attempts ? Math.round(s.correct/s.attempts*100) : null;
+          return `<button class="cat-tile" onclick="beginCalc('${t.id}')">
+            <span class="name">${t.name}</span>
+            <span class="pct">${s ? `${s.correct}/${s.attempts}問 正解 (${pct}%)` : '未挑戦'}</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+function beginCalc(typeId){
+  state.calc = {typeId, problem: buildCalcProblem(typeId || pick(CALC_TYPES).id), answered:null};
+  state.streak.calc = 0;
+  state.view='calc';
+  render();
+}
+function renderCalcQuestion(){
+  const cs = state.calc;
+  const p = cs.problem;
+  const answered = cs.answered;
+  const flashClass = answered===null ? '' : (answered===p.answerIndex ? 'flash-good' : 'flash-bad');
+  app.innerHTML = `
+    <div class="view">
+      <div class="topbar">
+        <button class="iconbtn" onclick="goHome()" aria-label="戻る">${backIcon()}</button>
+        <div class="progress-label">計算ドリル</div>
+        ${state.streak.calc>=1 ? `<span class="combo-chip">${lightningIcon()} COMBO ×${state.streak.calc}</span>` : '<span style="width:36px"></span>'}
+      </div>
+      <div class="card qcard ${flashClass}">
+        <div class="qcat">${p.typeName}<span class="badge-lv1">一等</span></div>
+        <div class="qtext">${p.prompt}</div>
+        <div class="choices">
+          ${p.choices.map((c,i)=>`
+            <button class="choice ${choiceClassCalc(i,p,answered)}" ${answered!==null?'disabled':''} onclick="answerCalc(${i})">
+              <span class="num">${i+1}</span><span>${c}</span>
+            </button>`).join('')}
+        </div>
+        ${answered!==null ? `
+          <div class="explain">
+            <b>${answered===p.answerIndex?'正解！':'不正解'}</b>
+            <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
+              ${p.steps.map(s=>`<div>${s}</div>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+      <div class="navrow">
+        <button class="btn" onclick="openCalcPicker()">種類を選び直す</button>
+        <button class="btn primary" ${answered===null?'disabled':''} onclick="nextCalc()">次の問題へ</button>
+      </div>
+    </div>
+  `;
+}
+function choiceClassCalc(i,p,answered){
+  if(answered===null) return '';
+  if(i===p.answerIndex) return 'correct';
+  if(i===answered) return 'wrong';
+  return '';
+}
+function answerCalc(i){
+  const cs = state.calc;
+  cs.answered = i;
+  const correct = i===cs.problem.answerIndex;
+  state.streak.calc = correct ? state.streak.calc+1 : 0;
+  const typeId = cs.typeId || cs.problem.typeId;
+  bumpCalcStats(typeId, correct);
+  recordAnswer({correct, isCalc:true, calcTypeId: cs.problem.typeId});
+  render();
+}
+function nextCalc(){
+  const cs = state.calc;
+  cs.problem = buildCalcProblem(cs.typeId || pick(CALC_TYPES).id);
+  cs.answered = null;
+  render();
+}
+
+/* ---------------- Quiz confirm ---------------- */
+function startQuizConfirm(){ state.view='quizConfirm'; render(); }
+function renderQuizConfirm(){
+  const spec = EXAM_SPEC[state.level];
+  app.innerHTML = `
+    <div class="view">
+      <div class="topbar">
+        <button class="iconbtn" onclick="goHome()" aria-label="戻る">${backIcon()}</button>
+        <div class="progress-label">模擬試験</div>
+        <span style="width:36px"></span>
+      </div>
+      <div class="card" style="padding:20px;">
+        <h2 style="font-size:18px;">${spec.label}学科試験 模擬試験</h2>
+        <p style="font-size:13px;color:var(--ink-soft);line-height:1.7;margin-top:8px;">実際の試験に準拠した出題数・制限時間・合格基準で出題します。開始するとタイマーが動き始め、途中経過は保存されません。</p>
+        <ul class="confirm-list">
+          <li>出題数 <b>${spec.count}問</b></li>
+          <li>制限時間 <b>${spec.minutes}分</b></li>
+          <li>出題形式 <b>三肢択一</b></li>
+          <li>合格基準 <b>正答率${spec.passLabel}以上</b></li>
+        </ul>
+      </div>
+      <div class="navrow">
+        <button class="btn" onclick="goHome()">キャンセル</button>
+        <button class="btn primary" onclick="beginQuiz()">試験を開始する</button>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------------- Quiz ---------------- */
+function beginQuiz(){
+  const spec = EXAM_SPEC[state.level];
+  const pool = shuffle(poolFor(state.level));
+  const count = Math.min(spec.count, pool.length);
+  const questions = shuffleChoicesList(pool.slice(0,count));
+  state.quiz = {
+    questions,
+    answers: new Array(questions.length).fill(null),
+    flags: new Array(questions.length).fill(false),
+    idx: 0,
+    endAt: Date.now() + spec.minutes*60*1000,
+    submitted: false,
+  };
+  state.view='quiz';
+  render();
+  state.quiz.timerId = setInterval(tickTimer, 1000);
+}
+function tickTimer(){
+  if(!state.quiz || state.quiz.submitted) return;
+  const remain = Math.round((state.quiz.endAt - Date.now())/1000);
+  const el = $('#quizTimer');
+  if(el){
+    el.textContent = fmtTime(remain);
+    el.classList.toggle('warn', remain<=300 && remain>60);
+    el.classList.toggle('danger', remain<=60);
+  }
+  if(remain<=0){
+    submitQuiz(true);
+  }
+}
+function renderQuiz(){
+  const qz = state.quiz;
+  const q = qz.questions[qz.idx];
+  const spec = EXAM_SPEC[state.level];
+  const remain = Math.max(0, Math.round((qz.endAt - Date.now())/1000));
+  app.innerHTML = `
+    <div class="view">
+      <div class="topbar">
+        <button class="iconbtn" onclick="confirmQuitQuiz()" aria-label="中断">${closeIcon()}</button>
+        <div class="progress-label">問 ${qz.idx+1} / ${qz.questions.length}</div>
+        <span id="quizTimer" class="timer">${fmtTime(remain)}</span>
+      </div>
+      <div class="track"><i style="width:${(qz.idx)/qz.questions.length*100}%"></i></div>
+      <div class="card qcard">
+        <div class="qcat">${catName(q.cat)}${q.level===1?'<span class="badge-lv1">一等</span>':''}</div>
+        <div class="qtext">${q.q}</div>
+        <div class="choices">
+          ${q.c.map((c,i)=>`
+            <button class="choice ${qz.answers[qz.idx]===i?'selected':''}" onclick="selectAnswer(${i})">
+              <span class="num">${i+1}</span><span>${c}</span>
+            </button>`).join('')}
+        </div>
+      </div>
+      <div class="navrow">
+        <button class="btn small" ${qz.idx===0?'disabled':''} onclick="quizNav(-1)">${'← 前へ'}</button>
+        <button class="btn small" onclick="toggleFlag()">${qz.flags[qz.idx] ? '★ フラグ解除' : '☆ 後で見直す'}</button>
+        <button class="btn small primary" onclick="quizNav(1)">${qz.idx+1>=qz.questions.length ? '見直し画面へ' : '次へ →'}</button>
+      </div>
+      <div class="qgrid">
+        ${qz.questions.map((_,i)=>`
+          <button class="${qz.answers[i]!==null?'answered':''} ${qz.flags[i]?'flagged':''} ${i===qz.idx?'current':''}" onclick="jumpTo(${i})">${i+1}</button>
+        `).join('')}
+      </div>
+      <button class="btn primary" style="width:100%" onclick="confirmSubmit()">解答を終了して採点する</button>
+    </div>
+  `;
+}
+function selectAnswer(i){
+  state.quiz.answers[state.quiz.idx] = i;
+  render();
+}
+function quizNav(d){
+  const qz = state.quiz;
+  qz.idx = Math.min(qz.questions.length-1, Math.max(0, qz.idx+d));
+  render();
+}
+function jumpTo(i){ state.quiz.idx = i; render(); }
+function toggleFlag(){ state.quiz.flags[state.quiz.idx] = !state.quiz.flags[state.quiz.idx]; render(); }
+function confirmQuitQuiz(){
+  showConfirm('模擬試験を中断しますか？結果は記録されません。', ()=>{
+    clearInterval(state.quiz.timerId);
+    state.quiz = null;
+    goHome();
+  });
+}
+function confirmSubmit(){
+  const unanswered = state.quiz.answers.filter(a=>a===null).length;
+  const msg = unanswered ? `未回答が${unanswered}問あります。このまま採点しますか？` : '解答を終了して採点しますか？';
+  showConfirm(msg, ()=>submitQuiz(false));
+}
+function submitQuiz(timeUp){
+  const qz = state.quiz;
+  if(qz.submitted) return;
+  qz.submitted = true;
+  clearInterval(qz.timerId);
+  const prog = getProgress(state.level);
+  qz.questions.forEach((q,i)=>{
+    const correct = qz.answers[i]===q.a;
+    prog[q.id] = {correct, seen:(prog[q.id]?.seen||0)+1};
+  });
+  setProgress(state.level, prog);
+  const score = qz.questions.filter((q,i)=>qz.answers[i]===q.a).length;
+  const entry = {date:new Date().toLocaleDateString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}), score, total:qz.questions.length, timeUp};
+  pushHistory(state.level, entry);
+  recordMockResult(qz, score, score/qz.questions.length >= EXAM_SPEC[state.level].pass);
+  state.lastResult = {qz, score, timeUp};
+  state.view='result';
+  render();
+}
+
+/* ---------------- Result ---------------- */
+function renderResult(){
+  const {qz, score, timeUp} = state.lastResult;
+  const spec = EXAM_SPEC[state.level];
+  const total = qz.questions.length;
+  const pct = Math.round(score/total*100);
+  const pass = score/total >= spec.pass;
+  const circumference = 2*Math.PI*62;
+  const dash = circumference*pct/100;
+
+  const catBreak = CATS.map(c=>{
+    const idxs = qz.questions.map((q,i)=>q.cat===c.id?i:-1).filter(i=>i>=0);
+    const correct = idxs.filter(i=>qz.answers[i]===qz.questions[i].a).length;
+    return {...c, correct, total: idxs.length};
+  }).filter(c=>c.total>0);
+
+  const missed = qz.questions.map((q,i)=>({q,i})).filter(({q,i})=>qz.answers[i]!==q.a);
+
+  app.innerHTML = `
+    <div class="view">
+      <div class="card result-hero">
+        ${pass ? confettiHTML() : ''}
+        ${timeUp?'<div class="pill" style="background:var(--warn-soft);color:var(--warn);margin-bottom:10px;">時間切れで自動採点されました</div>':''}
+        <div class="score-ring">
+          <svg width="150" height="150" viewBox="0 0 150 150">
+            <circle cx="75" cy="75" r="62" fill="none" stroke="var(--line-soft)" stroke-width="12"/>
+            <circle cx="75" cy="75" r="62" fill="none" stroke="${pass?'var(--good)':'var(--bad)'}" stroke-width="12"
+              stroke-linecap="round" stroke-dasharray="${dash} ${circumference}" transform="rotate(-90 75 75)"/>
+          </svg>
+          <div class="center">
+            <div class="score-num"><span class="countup" data-target="${pct}">0</span><span style="font-size:14px;">%</span></div>
+            <div class="score-den">${score} / ${total}問</div>
+          </div>
+        </div>
+        <div class="verdict ${pass?'pass':'fail'}">${pass?'合格ライン到達':'合格ラインに未到達'}</div>
+        <div class="result-sub">${spec.label}の合格基準：正答率${spec.passLabel}以上</div>
+      </div>
+
+      <div class="section">
+        <span class="eyebrow">科目別スコア</span>
+        <div class="card breakdown">
+          ${catBreak.map(c=>{
+            const p = Math.round(c.correct/c.total*100);
+            return `<div class="bd-row">
+              <span class="bd-name">${c.name}</span>
+              <span class="bd-bar"><i style="width:${p}%;background:${c.color}"></i></span>
+              <span class="bd-frac">${c.correct}/${c.total}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <div class="navrow">
+        <button class="btn" onclick="goHome()">ホームへ</button>
+        <button class="btn primary" onclick="beginQuiz()">もう一度挑戦</button>
+      </div>
+
+      ${missed.length ? `
+      <div class="section">
+        <span class="eyebrow">間違えた問題の復習 (${missed.length}問)</span>
+        <div class="card">
+          ${missed.map(({q,i})=>`
+            <div class="review-item">
+              <div class="qcat">${catName(q.cat)}${q.level===1?'<span class="badge-lv1">一等</span>':''}</div>
+              <div class="review-q">${q.q}</div>
+              ${q.c.map((c,ci)=>{
+                if(ci===q.a) return `<div class="review-choice correct">✓ ${c}</div>`;
+                if(ci===qz.answers[i]) return `<div class="review-choice wrong">✕ ${c}</div>`;
+                return '';
+              }).join('')}
+              <div class="review-exp">${q.exp}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>` : `<div class="empty card">全問正解です。お見事！</div>`}
+    </div>
+  `;
+  runCountUps();
+}
+
+/* ---------------- アチーブメント (プロペラ実績) ---------------- */
+const TIERS = [
+  {id:'platinum', name:'プラチナ'},
+  {id:'gold', name:'ゴールド'},
+  {id:'silver', name:'シルバー'},
+  {id:'bronze', name:'ブロンズ'},
+];
+const ACHIEVEMENTS = [
+  // ブロンズ
+  {id:'b1', tier:'bronze', name:'はじめの一歩', desc:'はじめて問題に解答する', test:s=>s.totalAnswered>=1},
+  {id:'b2', tier:'bronze', name:'助走開始', desc:'累計10問に解答する', test:s=>s.totalAnswered>=10},
+  {id:'b3', tier:'bronze', name:'腕試し', desc:'模擬試験に1回挑戦する', test:s=>s.mockAttempts>=1},
+  {id:'b4', tier:'bronze', name:'初合格', desc:'模擬試験で合格ラインに到達する', test:s=>s.mockPassLevels[1]||s.mockPassLevels[2]},
+  {id:'b5', tier:'bronze', name:'リベンジ成功', desc:'苦手問題の復習で1問正解する', test:s=>s.reviewCorrect>=1},
+  {id:'b6', tier:'bronze', name:'波に乗る', desc:'3問連続で正解する', test:s=>s.bestCombo>=3},
+  {id:'b7', tier:'bronze', name:'二刀流', desc:'一等・二等の両方で問題に解答する', test:s=>s.answeredLevels[1]&&s.answeredLevels[2]},
+  // シルバー
+  {id:'s1', tier:'silver', name:'百戦錬磨', desc:'累計100問に解答する', test:s=>s.totalAnswered>=100},
+  {id:'s2', tier:'silver', name:'安定飛行', desc:'50問以上解答し、累計正答率80%以上を達成する', test:s=>s.totalAnswered>=50 && s.totalCorrect/s.totalAnswered>=0.8},
+  {id:'s3', tier:'silver', name:'模試常連', desc:'模擬試験に5回挑戦する', test:s=>s.mockAttempts>=5},
+  {id:'s4', tier:'silver', name:'苦手克服', desc:'苦手問題の復習で通算10問正解する', test:s=>s.reviewCorrect>=10},
+  {id:'s5', tier:'silver', name:'ノーミス飛行', desc:'7問連続で正解する', test:s=>s.bestCombo>=7},
+  {id:'s6', tier:'silver', name:'計算マスター見習い', desc:'計算ドリルの5種類すべてで正解する(一等)', test:s=>Object.keys(s.calcTypesCorrect).length>=5},
+  // ゴールド
+  {id:'g1', tier:'gold', name:'求道者', desc:'累計300問に解答する', test:s=>s.totalAnswered>=300},
+  {id:'g2', tier:'gold', name:'エース操縦士', desc:'100問以上解答し、累計正答率90%以上を達成する', test:s=>s.totalAnswered>=100 && s.totalCorrect/s.totalAnswered>=0.9},
+  {id:'g3', tier:'gold', name:'パーフェクトスコア', desc:'模擬試験で満点(100%)を取る', test:s=>s.mockPerfect},
+  {id:'g4', tier:'gold', name:'苦手問題ハンター', desc:'苦手問題の復習で通算25問正解する', test:s=>s.reviewCorrect>=25},
+  // プラチナ
+  {id:'p1', tier:'platinum', name:'完全制覇', desc:'一等・二等の両方の模擬試験で合格ラインに到達する', test:s=>s.mockPassLevels[1]&&s.mockPassLevels[2]},
+  {id:'p2', tier:'platinum', name:'無人航空機マスター', desc:'200問以上解答し、累計正答率95%以上を達成する', test:s=>s.totalAnswered>=200 && s.totalCorrect/s.totalAnswered>=0.95},
+  {id:'p3', tier:'platinum', name:'プラチナプロペラ', desc:'他のすべてのアチーブメントを解除する', test:(s,unlocked)=>ACHIEVEMENTS.filter(a=>a.id!=='p3').every(a=>unlocked[a.id])},
+];
+
+function propellerIcon(size){
+  size = size||26;
+  return `<svg class="propeller" width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <ellipse cx="12" cy="6.3" rx="2.5" ry="5.2"/>
+    <ellipse cx="12" cy="6.3" rx="2.5" ry="5.2" transform="rotate(120 12 12)"/>
+    <ellipse cx="12" cy="6.3" rx="2.5" ry="5.2" transform="rotate(240 12 12)"/>
+    <circle cx="12" cy="12" r="2.3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  </svg>`;
+}
+function tierVars(tierId){
+  return `--tier-c:var(--tier-${tierId});--tier-glow:var(--tier-${tierId}-glow);`;
+}
+
+function globalStatsKey(){ return 'drone-exam-global-v1'; }
+function getGlobalStats(){
+  return store(globalStatsKey(), {
+    totalAnswered:0, totalCorrect:0, bestCombo:0, reviewCorrect:0,
+    mockAttempts:0, mockBestPct:0, mockPerfect:false,
+    mockPassLevels:{1:false,2:false}, answeredLevels:{1:false,2:false},
+    calcTypesCorrect:{},
+  });
+}
+function setGlobalStats(s){ saveStore(globalStatsKey(), s); }
+function recordAnswer(opts){
+  const s = getGlobalStats();
+  s.totalAnswered++;
+  if(opts.correct) s.totalCorrect++;
+  s.answeredLevels[state.level] = true;
+  if(opts.isReview && opts.correct) s.reviewCorrect++;
+  if(opts.isCalc && opts.correct && opts.calcTypeId) s.calcTypesCorrect[opts.calcTypeId] = true;
+  const streakNow = opts.isCalc ? state.streak.calc : state.streak.study;
+  if(streakNow > s.bestCombo) s.bestCombo = streakNow;
+  setGlobalStats(s);
+  evaluateAchievements();
+}
+function recordMockResult(qz, score, pass){
+  const s = getGlobalStats();
+  s.totalAnswered += qz.questions.length;
+  s.totalCorrect += score;
+  s.answeredLevels[state.level] = true;
+  s.mockAttempts++;
+  const pct = Math.round(score/qz.questions.length*100);
+  if(pct > s.mockBestPct) s.mockBestPct = pct;
+  if(pct>=100) s.mockPerfect = true;
+  if(pass) s.mockPassLevels[state.level] = true;
+  setGlobalStats(s);
+  evaluateAchievements();
+}
+
+function achievementsKey(){ return 'drone-exam-achievements-v1'; }
+function getUnlocked(){ return store(achievementsKey(), {}); }
+function setUnlocked(u){ saveStore(achievementsKey(), u); }
+function evaluateAchievements(){
+  const stats = getGlobalStats();
+  const unlocked = getUnlocked();
+  let changed = false;
+  const newly = [];
+  ACHIEVEMENTS.forEach(a=>{
+    if(unlocked[a.id]) return;
+    if(a.test(stats, unlocked)){
+      unlocked[a.id] = new Date().toISOString();
+      changed = true;
+      newly.push(a);
+    }
+  });
+  if(changed){
+    setUnlocked(unlocked);
+    newly.forEach(a=>queueAchievementToast(a));
+  }
+}
+
+let toastQueue = [];
+let toastBusy = false;
+function queueAchievementToast(a){
+  toastQueue.push(a);
+  if(!toastBusy) showNextToast();
+}
+function showNextToast(){
+  const a = toastQueue.shift();
+  if(!a){ toastBusy=false; return; }
+  toastBusy = true;
+  const toast = document.getElementById('achToast');
+  const icon = document.getElementById('achToastIcon');
+  const tierEl = document.getElementById('achToastTier');
+  const nameEl = document.getElementById('achToastName');
+  if(!toast){ toastBusy=false; return; }
+  toast.style.cssText = tierVars(a.tier);
+  icon.innerHTML = propellerIcon(24);
+  tierEl.textContent = `${TIERS.find(t=>t.id===a.tier).name}プロペラ 解除`;
+  nameEl.textContent = a.name;
+  toast.hidden = false;
+  toast.classList.remove('leaving');
+  clearTimeout(showNextToast._t1);
+  clearTimeout(showNextToast._t2);
+  showNextToast._t1 = setTimeout(()=>{
+    toast.classList.add('leaving');
+    showNextToast._t2 = setTimeout(()=>{ toast.hidden = true; showNextToast(); }, 380);
+  }, 3200);
+}
+
+function openAchievements(){ state.view='achievements'; render(); }
+function renderAchievements(){
+  const unlocked = getUnlocked();
+  const unlockedCount = Object.keys(unlocked).length;
+  app.innerHTML = `
+    <div class="view">
+      <div class="topbar">
+        <button class="iconbtn" onclick="goHome()" aria-label="戻る">${backIcon()}</button>
+        <div class="progress-label">アチーブメント</div>
+        <span style="width:36px"></span>
+      </div>
+      <div class="ach-summary">
+        ${propellerIcon(34)}
+        <div class="ach-summary-body">
+          <div class="ach-summary-title">プロペラコレクション</div>
+          <div class="ach-summary-count">${unlockedCount} / ${ACHIEVEMENTS.length} 解除</div>
+          <div class="ach-summary-bar"><i style="width:${Math.round(unlockedCount/ACHIEVEMENTS.length*100)}%"></i></div>
+        </div>
+      </div>
+      ${TIERS.map(tier=>{
+        const list = ACHIEVEMENTS.filter(a=>a.tier===tier.id);
+        const got = list.filter(a=>unlocked[a.id]).length;
+        return `
+        <div class="tier-section">
+          <div class="tier-head tier-${tier.id}">
+            ${propellerIcon(20)}
+            <span class="tier-head-name">${tier.name}プロペラ</span>
+            <span class="tier-head-count">${got}/${list.length}</span>
+          </div>
+          <div class="ach-grid">
+            ${list.map(a=>{
+              const isUnlocked = !!unlocked[a.id];
+              const dateStr = isUnlocked ? new Date(unlocked[a.id]).toLocaleDateString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit'}) : '';
+              return `
+              <div class="ach-card ${isUnlocked?'unlocked':'locked'}" style="${isUnlocked?tierVars(a.tier):''}">
+                ${propellerIcon(28)}
+                <div class="ach-card-name">${isUnlocked ? a.name : '？'}</div>
+                <div class="ach-card-desc">${isUnlocked ? a.desc : '？'}</div>
+                ${isUnlocked ? `<div class="ach-card-date">${dateStr} 解除</div>` : ''}
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+/* ---------------- タイムアタックモード ---------------- */
+function taStoreKey(){ return 'drone-exam-ta-v1'; }
+function getTAStore(){ return store(taStoreKey(), {}); }
+function setTAStore(s){ saveStore(taStoreKey(), s); }
+function recordTAResult(key, correctCount, totalCount){
+  const s = getTAStore();
+  const prev = s[key];
+  const isNewBest = !!prev && correctCount > prev.best;
+  if(!prev || correctCount > prev.best){
+    s[key] = {best:correctCount, bestTotal:totalCount, bestAt:new Date().toISOString()};
+    setTAStore(s);
+  }
+  return {isNewBest, isFirstTime: !prev};
+}
+function fmtTA(ms){
+  const s = Math.max(0, ms/1000);
+  if(s>=60) return fmtTime(Math.ceil(s));
+  return s.toFixed(1);
+}
+function openTAPicker(mode){
+  state.taPickerMode = mode;
+  state.view = 'taPicker';
+  render();
+}
+function renderTAPicker(){
+  const mode = state.taPickerMode;
+  const levels = mode==='calc' ? TA_CALC_LEVELS : TA_LEVELS;
+  const taStore = getTAStore();
+  app.innerHTML = `
+    <div class="view">
+      <div class="topbar">
+        <button class="iconbtn" onclick="goHome()" aria-label="戻る">${backIcon()}</button>
+        <div class="progress-label">${mode==='calc'?'計算タイムアタック':'タイムアタック'}</div>
+        <span style="width:36px"></span>
+      </div>
+      <div class="card" style="padding:16px;margin-bottom:14px;">
+        <p style="font-size:13px;color:var(--ink-soft);line-height:1.7;margin:0;">制限時間内に${mode==='calc'?'計算':''}問題を何問解けるか挑戦しましょう。正解すると残り時間が2秒延長、誤答すると2秒減少します。難易度は実際のフライト${mode==='calc'?'リスク区分':'レベル'}にちなんでいます。</p>
+      </div>
+      <div class="ta-diff-grid">
+        ${levels.map(lv=>{
+          const key = mode==='calc' ? `calc-${lv.id}` : `normal-${state.level}-${lv.id}`;
+          const best = taStore[key];
+          return `
+          <button class="ta-diff-card" onclick="beginTA('${mode}','${lv.id}')">
+            <div class="ta-diff-time">${fmtTA(lv.seconds*1000)}</div>
+            <div class="ta-diff-body">
+              <div class="ta-diff-name">${lv.name}</div>
+              <div class="ta-diff-desc">${lv.desc}</div>
+              ${best ? `<div class="ta-diff-best">自己ベスト ${best.best}問正解</div>` : ''}
+            </div>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+function beginTA(mode, levelId){
+  const levels = mode==='calc' ? TA_CALC_LEVELS : TA_LEVELS;
+  const levelDef = levels.find(l=>l.id===levelId);
+  if(!levelDef) return;
+  const key = mode==='calc' ? `calc-${levelDef.id}` : `normal-${state.level}-${levelDef.id}`;
+  if(state.ta){ clearInterval(state.ta.timerId); clearTimeout(state.ta.advanceTimer); }
+  state.ta = {
+    mode, levelDef, key,
+    pool: mode==='normal' ? shuffleChoicesList(shuffle(poolFor(state.level))) : null,
+    poolIdx: 0,
+    current: null, answered: null,
+    correctCount: 0, totalCount: 0,
+    endAt: Date.now() + levelDef.seconds*1000,
+    timerId: null, advanceTimer: null,
+    ended: false, timeFx: null,
+  };
+  nextTAQuestion();
+  state.view = 'ta';
+  render();
+  state.ta.timerId = setInterval(tickTA, 100);
+}
+function nextTAQuestion(){
+  const ta = state.ta;
+  if(!ta) return;
+  if(ta.mode==='calc'){
+    ta.current = buildCalcProblem(null);
+  } else {
+    if(ta.poolIdx >= ta.pool.length){ ta.pool = shuffleChoicesList(shuffle(poolFor(state.level))); ta.poolIdx = 0; }
+    ta.current = ta.pool[ta.poolIdx++];
+  }
+  ta.answered = null;
+  ta.timeFx = null;
+}
+function tickTA(){
+  const ta = state.ta;
+  if(!ta || ta.ended) return;
+  const remain = ta.endAt - Date.now();
+  const txt = document.getElementById('taTimerText');
+  const box = document.getElementById('taTimer');
+  if(txt) txt.textContent = fmtTA(remain);
+  if(box){
+    box.classList.toggle('warn', remain<=10000 && remain>3000);
+    box.classList.toggle('danger', remain<=3000);
+  }
+  if(remain<=0) endTA();
+}
+function renderTA(){
+  const ta = state.ta;
+  if(!ta || !ta.current) return;
+  const isCalc = ta.mode==='calc';
+  const q = ta.current;
+  const qText = isCalc ? q.prompt : q.q;
+  const choices = isCalc ? q.choices : q.c;
+  const correctIdx = isCalc ? q.answerIndex : q.a;
+  const catLabel = isCalc ? q.typeName : catName(q.cat);
+  const answered = ta.answered;
+  const flashClass = answered===null ? '' : (answered===correctIdx ? 'flash-good' : 'flash-bad');
+  const remain = ta.endAt - Date.now();
+  app.innerHTML = `
+    <div class="view">
+      <div class="ta-topbar">
+        <button class="iconbtn" onclick="confirmQuitTA()" aria-label="中断">${closeIcon()}</button>
+        <div class="ta-timer-big" id="taTimer">
+          <span id="taTimerText">${fmtTA(remain)}</span>
+          ${ta.timeFx ? `<span class="ta-time-pop ${ta.timeFx}">${ta.timeFx==='plus'?'+2s':'-2s'}</span>` : ''}
+        </div>
+        <span style="width:37px"></span>
+      </div>
+      <div class="ta-score-row">
+        <span>正解 <b>${ta.correctCount}</b></span>
+        <span>解答 <b>${ta.totalCount}</b>問</span>
+        <span>${ta.levelDef.name}</span>
+      </div>
+      <div class="card qcard ${flashClass}">
+        <div class="qcat">${catLabel}${isCalc?'<span class="badge-lv1">一等</span>':(q.level===1?'<span class="badge-lv1">一等</span>':'')}</div>
+        <div class="qtext">${qText}</div>
+        <div class="choices">
+          ${choices.map((c,i)=>`
+            <button class="choice ${answered===null?'':(i===correctIdx?'correct':(i===answered?'wrong':''))}" ${answered!==null?'disabled':''} onclick="answerTA(${i})">
+              <span class="num">${i+1}</span><span>${c}</span>
+            </button>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+function answerTA(i){
+  const ta = state.ta;
+  if(!ta || ta.ended || ta.answered!==null) return;
+  const correctIdx = ta.mode==='calc' ? ta.current.answerIndex : ta.current.a;
+  const correct = i===correctIdx;
+  ta.answered = i;
+  ta.totalCount++;
+  if(correct){
+    ta.correctCount++;
+    ta.endAt += 2000;
+    ta.timeFx = 'plus';
+  } else {
+    ta.endAt -= 2000;
+    ta.timeFx = 'minus';
+  }
+  render();
+  clearTimeout(ta.advanceTimer);
+  ta.advanceTimer = setTimeout(()=>{
+    if(!state.ta || state.ta.ended) return;
+    advanceTA();
+  }, 650);
+}
+function advanceTA(){
+  nextTAQuestion();
+  render();
+}
+function endTA(){
+  const ta = state.ta;
+  if(!ta || ta.ended) return;
+  ta.ended = true;
+  clearInterval(ta.timerId);
+  clearTimeout(ta.advanceTimer);
+  const {isNewBest, isFirstTime} = recordTAResult(ta.key, ta.correctCount, ta.totalCount);
+  state.taResult = {
+    mode: ta.mode, levelDef: ta.levelDef, key: ta.key,
+    correctCount: ta.correctCount, totalCount: ta.totalCount,
+    isNewBest, isFirstTime,
+  };
+  state.view = 'taResult';
+  render();
+}
+function confirmQuitTA(){
+  showConfirm('タイムアタックを中断しますか？記録は保存されません。', ()=>{
+    const ta = state.ta;
+    if(ta){ clearInterval(ta.timerId); clearTimeout(ta.advanceTimer); }
+    state.ta = null;
+    goHome();
+  });
+}
+function retryTA(){
+  const r = state.taResult;
+  if(!r) return goHome();
+  beginTA(r.mode, r.levelDef.id);
+}
+function renderTAResult(){
+  const r = state.taResult;
+  if(!r){ goHome(); return; }
+  const taStore = getTAStore();
+  const rec = taStore[r.key];
+  const pct = r.totalCount ? Math.round(r.correctCount/r.totalCount*100) : 0;
+  const circumference = 2*Math.PI*62;
+  const dash = circumference*pct/100;
+  app.innerHTML = `
+    <div class="view">
+      <div class="card result-hero">
+        ${r.isNewBest ? confettiHTML() : ''}
+        <div class="score-ring">
+          <svg width="150" height="150" viewBox="0 0 150 150">
+            <circle cx="75" cy="75" r="62" fill="none" stroke="var(--line-soft)" stroke-width="12"/>
+            <circle cx="75" cy="75" r="62" fill="none" stroke="var(--accent)" stroke-width="12"
+              stroke-linecap="round" stroke-dasharray="${dash} ${circumference}" transform="rotate(-90 75 75)"/>
+          </svg>
+          <div class="center">
+            <div class="score-num"><span class="countup" data-target="${r.correctCount}">0</span></div>
+            <div class="score-den">正解(正答率${pct}%)</div>
+          </div>
+        </div>
+        <div class="verdict pass">TIME UP!</div>
+        <div class="result-sub">${r.mode==='calc'?'計算タイムアタック':'タイムアタック'}・${r.levelDef.name}(${fmtTA(r.levelDef.seconds*1000)})</div>
+      </div>
+
+      ${r.isNewBest ? `<div class="ta-newbest">${lightningIcon()} 自己ベスト更新！</div>` : ''}
+
+      <div class="section">
+        <div class="card breakdown">
+          <div class="bd-row"><span class="bd-name">正解数</span><span style="flex:1;text-align:right;font-family:var(--font-mono);font-size:13px;">${r.correctCount} 問</span></div>
+          <div class="bd-row"><span class="bd-name">解答数</span><span style="flex:1;text-align:right;font-family:var(--font-mono);font-size:13px;">${r.totalCount} 問</span></div>
+          <div class="bd-row"><span class="bd-name">正答率</span><span style="flex:1;text-align:right;font-family:var(--font-mono);font-size:13px;">${pct}%</span></div>
+          <div class="bd-row"><span class="bd-name">自己ベスト</span><span style="flex:1;text-align:right;font-family:var(--font-mono);font-size:13px;">${rec?rec.best:'-'} 問</span></div>
+        </div>
+      </div>
+
+
+      <div class="navrow">
+        <button class="btn" onclick="goHome()">ホームへ</button>
+        <button class="btn primary" onclick="retryTA()">もう一度挑戦</button>
+      </div>
+    </div>
+  `;
+  runCountUps();
+}
+
+/* ---------------- Helpers ---------------- */
+function goHome(){
+  state.view='home'; state.quiz=null;
+  if(state.ta){ clearInterval(state.ta.timerId); clearTimeout(state.ta.advanceTimer); state.ta=null; }
+  render();
+}
+function catName(id){ return CATS.find(c=>c.id===id)?.name || id; }
+function backIcon(){ return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`; }
+function closeIcon(){ return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`; }
+function lightningIcon(){ return `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>`; }
+
+/* ---------------- Opening splash (Matter.js physics drop, with CSS fallback) ---------------- */
+const SPLASH_TEXT = 'ドローン資格ナビ';
+let splashFinished = false;
+function splashTileSize(stageW, count){
+  const gap = Math.max(3, Math.min(6, stageW*0.012));
+  const tileW = Math.max(22, Math.min(42, Math.floor((stageW - gap*(count-1)) / count)));
+  const tileH = Math.round(tileW*1.18);
+  return {gap, tileW, tileH, fontSize: Math.round(tileW*0.5)};
+}
+function initSplash(){
+  const splash = document.getElementById('splash');
+  const stage = document.getElementById('dropStage');
+  if(!splash || !stage){ finishSplash(); return; }
+  if(prefersReducedMotion()){ finishSplash(); return; }
+
+  let physicsStarted = false;
+  if(typeof Matter !== 'undefined'){
+    try{
+      runPhysicsDrop(stage);
+      physicsStarted = true;
+    }catch(e){ physicsStarted = false; }
+  }
+  if(!physicsStarted){
+    runCssDrop(stage);
+  }
+}
+function runPhysicsDrop(stage){
+  const chars = SPLASH_TEXT.split('');
+  const stageW = stage.getBoundingClientRect().width || 320;
+  const stageH = stage.getBoundingClientRect().height || 160;
+  const {gap, tileW, tileH, fontSize} = splashTileSize(stageW, chars.length);
+  const totalW = tileW*chars.length + gap*(chars.length-1);
+  const startX = (stageW-totalW)/2 + tileW/2;
+  const groundY = stageH*0.62;
+
+  const {Engine, Bodies, Body, Runner, Composite} = Matter;
+  const engine = Engine.create();
+  engine.gravity.y = 1.15;
+  const world = engine.world;
+
+  // 厚めの静的コライダーにして、タブのスロットリング等でタイムステップが
+  // 大きくなった際にキャラクターが床をすり抜ける「トンネリング」を防ぐ
+  const wallOpts = {isStatic:true, restitution:0.25, friction:0.5};
+  const ground = Bodies.rectangle(stageW/2, groundY+tileH/2+24, stageW*2, 48, wallOpts);
+  const leftWall = Bodies.rectangle(-24, stageH/2, 48, stageH*3, wallOpts);
+  const rightWall = Bodies.rectangle(stageW+24, stageH/2, 48, stageH*3, wallOpts);
+  Composite.add(world, [ground, leftWall, rightWall]);
+
+  const els = chars.map(ch=>{
+    const el = document.createElement('div');
+    el.className = 'drop-char';
+    el.style.width = tileW+'px';
+    el.style.height = tileH+'px';
+    el.style.fontSize = fontSize+'px';
+    el.textContent = ch;
+    stage.appendChild(el);
+    return el;
+  });
+  const bodies = [];
+
+  let dropped = 0;
+  let dropTimer = null;
+  function dropNext(){
+    if(dropped>=chars.length) return;
+    const i = dropped++;
+    const x = startX + i*(tileW+gap);
+    const startY = -40 - Math.random()*70;
+    const body = Bodies.rectangle(x, startY, tileW*0.92, tileH*0.92, {
+      restitution:0.45, friction:0.5, frictionAir:0.012,
+      angle:(Math.random()-0.5)*0.6,
+    });
+    Body.setAngularVelocity(body, (Math.random()-0.5)*0.25);
+    Composite.add(world, body);
+    bodies[i] = body;
+    if(dropped<chars.length) dropTimer = setTimeout(dropNext, 85);
+  }
+  dropNext();
+
+  // 固定タイムステップにして、バックグラウンドタブ等でフレームが間引かれても
+  // 物理演算が不安定にならないようにする（可変タイムステップだと大ジャンプで
+  // すり抜け・爆発的な挙動が起きやすい）
+  const runner = Runner.create({isFixed:true, delta:1000/60});
+  Runner.run(runner, engine);
+
+  let rafId;
+  function sync(){
+    try{
+      bodies.forEach((b,i)=>{
+        if(!b) return;
+        const el = els[i];
+        el.style.transform = `translate(${(b.position.x-tileW/2).toFixed(1)}px, ${(b.position.y-tileH/2).toFixed(1)}px) rotate(${b.angle.toFixed(3)}rad)`;
+      });
+      rafId = requestAnimationFrame(sync);
+    }catch(e){ doFinish(); }
+  }
+  sync();
+
+  function cleanupPhysics(){
+    clearTimeout(dropTimer);
+    cancelAnimationFrame(rafId);
+    try{
+      Runner.stop(runner);
+      Composite.clear(world, false);
+      Engine.clear(engine);
+    }catch(e){}
+  }
+
+  function doFinish(){
+    if(splashFinished) return;
+    cleanupPhysics();
+    finishSplash();
+  }
+  // 物理演算の結果に多少のズレが残っても、表示前に必ずきれいな一列へ
+  // スナップさせてから「tap to start」を出す
+  function snapToGrid(){
+    bodies.forEach((b,i)=>{
+      if(!b) return;
+      Body.setPosition(b, {x: startX + i*(tileW+gap), y: groundY - tileH/2 + 2});
+      Body.setAngle(b, 0);
+      Body.setVelocity(b, {x:0, y:0});
+      Body.setAngularVelocity(b, 0);
+    });
+  }
+  setTimeout(()=>{ snapToGrid(); revealTapToStart(doFinish); }, 850 + chars.length*85);
+}
+function runCssDrop(stage){
+  const chars = SPLASH_TEXT.split('');
+  const stageW = stage.getBoundingClientRect().width || 320;
+  const {gap, tileW, tileH, fontSize} = splashTileSize(stageW, chars.length);
+  stage.classList.add('css-mode');
+  chars.forEach((ch,i)=>{
+    const el = document.createElement('div');
+    el.className = 'drop-char css-fall';
+    el.style.width = tileW+'px';
+    el.style.height = tileH+'px';
+    el.style.fontSize = fontSize+'px';
+    el.style.setProperty('--delay', (i*85)+'ms');
+    el.style.setProperty('--rot', ((i%2?1:-1)*(8+Math.random()*8)).toFixed(1)+'deg');
+    el.textContent = ch;
+    stage.appendChild(el);
+  });
+  setTimeout(()=>revealTapToStart(finishSplash), 850 + chars.length*85);
+}
+function revealTapToStart(onTap){
+  const sub = document.getElementById('splashSub');
+  if(sub) sub.classList.add('show');
+  const tap = document.getElementById('splashTap');
+  if(tap) tap.classList.add('show');
+  const splash = document.getElementById('splash');
+  if(splash){
+    splash.classList.add('ready');
+    splash.addEventListener('click', onTap, {once:true});
+  }
+}
+function finishSplash(){
+  if(splashFinished) return;
+  splashFinished = true;
+  const splash = document.getElementById('splash');
+  const wrap = document.getElementById('mainWrap');
+  if(wrap){ wrap.hidden = false; wrap.classList.add('app-enter'); }
+  if(splash){
+    if(prefersReducedMotion()){ splash.hidden = true; }
+    else{
+      splash.classList.add('leaving');
+      setTimeout(()=>{ splash.hidden = true; }, 550);
+    }
+  }
+}
+
+/* ---------------- Boot (hot-reload aware) ---------------- */
+function start(data){
+  if(data && data.state){ state = Object.assign(state, data.state); }
+  // 復元時に進行中の試験・タイムアタックのタイマーは打ち切る（再開の不整合を避ける）
+  if(state.view==='quiz' || state.quiz){ state.view='home'; state.quiz=null; }
+  if(state.view==='ta' || state.view==='taPicker' || (state.ta && !state.ta.ended)){ state.view='home'; state.ta=null; }
+  document.documentElement.classList.toggle('lvl1', state.level===1);
+  $('#lvBtn2').classList.toggle('active', state.level===2);
+  $('#lvBtn1').classList.toggle('active', state.level===1);
+  render();
+}
+try{
+  if(window.claude?.hot){
+    window.claude.hot.snapshot(()=>({state:{level:state.level}}));
+    window.claude.hot.ready ? window.claude.hot.ready(start) : start(window.claude.hot.data);
+  } else { start(); }
+}catch(e){ start(); }
+try{ initSplash(); }catch(e){ finishSplash(); }
+</script>
+</body>
+</html>
