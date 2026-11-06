@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AIレースマーシャル</title>
+<meta name="description" content="AIがテレメトリーから事故・コースアウト・停止車両を検知し、フラッグ・SC・ペナルティを推奨するレースゲーム用マーシャル(レースコントロール)アプリ。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Murecho:wght@400;500;700;800&family=Orbitron:wght@600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#07090D;--paper:#10151C;--paper-2:#151C25;--line:#243140;--line-soft:#19222D;
+  --ink:#EAF1F6;--ink-soft:#8797A8;--ink-faint:#4D5C6B;
+  --accent:#FF8A2B;--accent-soft:rgba(255,138,43,.14);
+  --green:#2FE08A;--yellow:#FFD12E;--red:#FF3B55;--blue:#3B9BFF;--white:#F4F7FA;--sc:#FFB020;
+  --font-jp:'Murecho',-apple-system,'Hiragino Sans','Yu Gothic',sans-serif;
+  --font-disp:'Orbitron',var(--font-jp);--font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:radial-gradient(circle at 0 -20%,rgba(255,138,43,.09),transparent 45%),var(--bg);color:var(--ink);font-family:var(--font-jp);font-size:14px;min-height:100vh;padding:12px 16px 40px}
+button{font-family:inherit;cursor:pointer;color:inherit}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:12px}
+.brand{display:flex;flex-direction:column;line-height:1.15;margin-right:auto}
+.brand b{font-family:var(--font-disp);font-size:16px;letter-spacing:.04em}
+.brand b span{color:var(--accent)}
+.brand small{font-size:11px;color:var(--ink-soft)}
+.clock{font-family:var(--font-mono);display:flex;gap:12px;align-items:baseline}
+.clock b{font-family:var(--font-disp);font-size:15px}
+.clock span{color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.badge{font-family:var(--font-disp);font-weight:800;font-size:12px;letter-spacing:.08em;padding:7px 12px;border-radius:6px;background:var(--green);color:#03150b;min-width:96px;text-align:center}
+.badge.vsc{background:var(--sc);color:#231500}.badge.sc{background:var(--sc);color:#231500;animation:blink 1s infinite}
+.badge.red{background:var(--red);color:#fff;animation:blink .6s infinite}.badge.pre{background:var(--line);color:var(--ink-soft)}
+.badge.chk{background:repeating-conic-gradient(#fff 0 25%,#111 0 50%) 0 0/12px 12px;color:#000;text-shadow:0 0 3px #fff}
+@keyframes blink{50%{opacity:.55}}
+.ctrls{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--paper-2);padding:8px 12px;border-radius:6px;font-size:13px;font-weight:700}
+.btn:hover{border-color:var(--ink-faint)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#251000}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:var(--paper-2);padding:8px 10px;font-family:var(--font-mono);font-size:12px}
+.seg button.on{background:var(--ink);color:var(--bg);font-weight:700}
+
+.grid{display:grid;gap:12px;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);grid-template-areas:"map ai" "flags tower" "scen log"}
+.card{background:var(--paper);border:1px solid var(--line-soft);border-radius:10px;padding:12px;min-width:0}
+.card h2{flex-wrap:wrap;font-family:var(--font-disp);font-size:11px;letter-spacing:.14em;color:var(--ink-soft);margin:0 0 10px;display:flex;align-items:center;gap:8px;font-weight:700}
+.card h2 .sp{margin-left:auto}
+.mapCard{grid-area:map;padding:0;overflow:hidden;position:relative}
+#map{display:block;width:100%;aspect-ratio:16/10;touch-action:manipulation}
+.legend{position:absolute;left:10px;bottom:8px;display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;color:var(--ink-soft);font-family:var(--font-mono);pointer-events:none}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.aiCard{grid-area:ai;display:flex;flex-direction:column;max-height:calc((100vw - 32px) * .63 * .62 + 0px);min-height:360px}
+.aiStatus{font-family:var(--font-mono);font-size:11px;color:var(--ink-soft);margin-bottom:8px;display:flex;gap:10px;flex-wrap:wrap}
+.aiStatus b{color:var(--green)}
+.toggle{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:11px}
+.toggle button{white-space:nowrap;border:0;background:transparent;padding:5px 8px;font-weight:700;color:var(--ink-soft)}
+.toggle button.on{background:var(--accent);color:#251000}
+.iconbtn{white-space:nowrap;border:1px solid var(--line);background:transparent;border-radius:6px;padding:4px 8px;font-size:11px;color:var(--ink-soft)}
+.iconbtn.on{color:var(--ink);border-color:var(--ink-faint)}
+#recList{overflow:auto;display:flex;flex-direction:column;gap:8px;flex:1;padding-right:2px}
+.empty{color:var(--ink-faint);font-size:12px;text-align:center;padding:30px 10px;line-height:1.7}
+.rec{border:1px solid var(--line);border-left:4px solid var(--c,var(--yellow));border-radius:8px;padding:9px 10px;background:var(--paper-2)}
+.rec.done{opacity:.5}
+.rec .hd{display:flex;align-items:center;gap:8px}
+.rec .tt{font-weight:800;font-size:13.5px}
+.rec .tm{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-faint)}
+.rec .rs{font-size:12px;color:var(--ink-soft);margin:5px 0 7px;line-height:1.55}
+.conf{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-soft)}
+.conf .bar{flex:1;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.conf .bar i{display:block;height:100%;background:var(--c,var(--yellow))}
+.rec .acts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.rec .acts button{border:1px solid var(--line);background:var(--paper);border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700}
+.rec .acts .ok{background:var(--green);border-color:var(--green);color:#03150b}
+.rec .acts .ai{border-color:#7c6bff;color:#bdb3ff}
+.rec .st{font-size:11px;font-weight:700;margin-top:6px;font-family:var(--font-mono)}
+.claude{margin-top:8px;border-top:1px dashed var(--line);padding-top:7px;font-size:12px;line-height:1.6;color:#d6d0ff}
+.claude b{color:#bdb3ff}
+
+.flagCard{grid-area:flags}
+.posts{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.post{border:1px solid var(--line);background:var(--paper-2);border-radius:7px;padding:6px 4px;text-align:center;position:relative}
+.post .n{font-family:var(--font-disp);font-size:10px;color:var(--ink-soft)}
+.post .f{height:16px;border-radius:3px;margin:4px auto 3px;width:80%;background:var(--line)}
+.post .l{font-size:10.5px;font-weight:700}
+.post[data-f=yellow] .f{background:var(--yellow)}
+.post[data-f=double] .f{background:linear-gradient(90deg,var(--yellow) 0 45%,transparent 45% 55%,var(--yellow) 55%)}
+.post[data-f=white] .f{background:var(--white)}
+.post.green .f{background:var(--green)}
+.globals{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.globals button{border:1px solid var(--line);background:var(--paper-2);border-radius:7px;padding:10px 4px;font-family:var(--font-disp);font-weight:800;font-size:12px;letter-spacing:.05em}
+.globals .g-green{color:var(--green)}.globals .g-vsc,.globals .g-sc{color:var(--sc)}.globals .g-red{color:var(--red)}
+.globals button.on{outline:2px solid currentColor;outline-offset:-2px}
+.hint{font-size:11px;color:var(--ink-faint);margin-top:8px;line-height:1.6}
+
+.towerCard{grid-area:tower;overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+th{font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);text-align:left;font-weight:500;padding:3px 4px;border-bottom:1px solid var(--line)}
+td{padding:4px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
+td.mono{font-family:var(--font-mono);font-size:11.5px}
+tr.sel{background:rgba(255,255,255,.06)}
+tr{cursor:pointer}
+.cdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.stt{font-size:10.5px;font-weight:700;padding:1px 5px;border-radius:4px}
+.stt.bad{background:rgba(255,59,85,.18);color:var(--red)}.stt.warn{background:rgba(255,209,46,.15);color:var(--yellow)}
+.stt.blue{background:rgba(59,155,255,.18);color:var(--blue)}.stt.out{color:var(--ink-faint)}
+.pen{color:var(--red);font-family:var(--font-mono);font-size:11px}
+
+.logCard{grid-area:log;display:flex;flex-direction:column;max-height:330px}
+#log{overflow:auto;font-size:12px;display:flex;flex-direction:column;gap:3px}
+#log div{display:flex;gap:8px;line-height:1.45}
+#log time{font-family:var(--font-mono);color:var(--ink-faint);font-size:11px;flex-shrink:0}
+#log .i{color:var(--yellow)}#log .r{color:var(--red)}#log .g{color:var(--green)}#log .a{color:#bdb3ff}#log .b{color:var(--blue)}
+
+.scenCard{grid-area:scen}
+.scen{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.scen button{border:1px dashed var(--line);background:transparent;border-radius:7px;padding:9px 6px;font-size:12px;font-weight:700}
+.scen button:hover{border-color:var(--accent);color:var(--accent)}
+.row{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft)}
+select,input{background:var(--paper-2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:7px 8px;font-family:inherit;font-size:13px}
+
+dialog{background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:18px;width:min(520px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog h3{margin:0 0 12px;font-family:var(--font-disp);font-size:14px;letter-spacing:.06em}
+dialog label{display:block;font-size:12px;color:var(--ink-soft);margin:10px 0 4px}
+dialog input,dialog select{width:100%}
+dialog p{font-size:12px;color:var(--ink-soft);line-height:1.6}
+.dlgacts{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+
+@media (max-width:900px){
+  .grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"map" "ai" "flags" "tower" "log" "scen"}
+  .aiCard{max-height:420px;min-height:220px}
+  #map{aspect-ratio:4/3}
+}
+@media (max-width:480px){
+  body{padding:10px 16px 30px}
+  .posts{grid-template-columns:repeat(4,1fr)}
+  .scen{grid-template-columns:repeat(2,1fr)}
+  .clock b{font-size:13px}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>AI RACE <span>CONTROL</span></b><small>レースゲーム用 AIマーシャル・コンソール</small></div>
+  <div class="clock"><b id="lapNow">LAP 0/15</b><span id="raceTime">00:00.0</span></div>
+  <div id="globalBadge" class="badge pre">GRID</div>
+  <div class="ctrls">
+    <button class="btn primary" id="btnStart">スタート</button>
+    <div class="seg" id="speedSeg"><button data-s="1">×1</button><button data-s="2" class="on">×2</button><button data-s="4">×4</button><button data-s="8">×8</button></div>
+    <button class="btn" id="btnSettings" title="設定">設定</button>
+  </div>
+</header>
+
+<main class="grid">
+  <section class="card mapCard">
+    <canvas id="map"></canvas>
+    <div class="legend"><span><i style="background:var(--yellow)"></i>イエロー</span><span><i style="background:var(--white)"></i>白(低速車)</span><span><i style="background:var(--green)"></i>解除</span><span><i style="background:var(--red)"></i>停止車両</span><span><i style="background:var(--blue)"></i>青旗</span></div>
+  </section>
+
+  <aside class="card aiCard">
+    <h2>AI レースコントロール推奨
+      <span class="sp"></span>
+      <button class="iconbtn" id="btnVoice" title="音声アナウンス">音声 OFF</button>
+      <div class="toggle" id="modeToggle"><button data-m="manual" class="on">承認制</button><button data-m="auto">AI自動</button></div>
+    </h2>
+    <div class="aiStatus"><span>監視 <b id="aiCars">0</b>台</span><span>異常検知 <b id="aiAnom">0</b>件</span><span>判定 <b id="aiDecisions">0</b>件</span></div>
+    <div id="recList"><div class="empty">レースを開始すると、AIが全車のテレメトリー(速度・横位置・停止時間・車間)を監視し、<br>フラッグ・SC・ペナルティを推奨します。</div></div>
+  </aside>
+
+  <section class="card flagCard">
+    <h2>マーシャルポスト / フラッグ<span class="sp"></span></h2>
+    <div class="posts" id="posts"></div>
+    <div class="globals">
+      <button class="g-green" data-g="green">GREEN</button>
+      <button class="g-vsc" data-g="vsc">VSC</button>
+      <button class="g-sc" data-g="sc">SC</button>
+      <button class="g-red" data-g="red">RED</button>
+    </div>
+    <div class="hint">ポストをタップで手動切替：なし → イエロー → ダブルイエロー → 白 → なし。<br>イエロー区間では減速・追い越し禁止。違反はAIが検知します。</div>
+  </section>
+
+  <section class="card towerCard">
+    <h2>タイミング<span class="sp" id="bestLap" style="font-family:var(--font-mono);letter-spacing:0;font-weight:500"></span></h2>
+    <table><thead><tr><th>P</th><th>ドライバー</th><th>周</th><th>差</th><th>状態</th><th>罰</th></tr></thead><tbody id="tower"></tbody></table>
+  </section>
+
+  <section class="card scenCard">
+    <h2>シナリオ発生(訓練用)</h2>
+    <div class="scen">
+      <button data-x="spin">スピン</button>
+      <button data-x="contact">接触事故</button>
+      <button data-x="mech">マシントラブル</button>
+      <button data-x="stop">コース上停止</button>
+      <button data-x="debris">デブリ</button>
+      <button data-x="multi">多重クラッシュ</button>
+    </div>
+    <div class="row">周回数
+      <select id="lapsSel"><option>5</option><option>10</option><option selected>15</option><option>20</option></select>
+      インシデント頻度
+      <select id="rateSel"><option value="0.5">少</option><option value="1" selected>標準</option><option value="2">多</option></select>
+      <button class="btn" id="btnReset">リセット</button>
+    </div>
+  </section>
+
+  <section class="card logCard">
+    <h2>レースコントロール ログ</h2>
+    <div id="log"></div>
+  </section>
+</main>
+
+<dialog id="dlgSettings">
+  <h3>設定</h3>
+  <label>AI自動モードで自動適用する信頼度のしきい値</label>
+  <select id="thrSel"><option value="0.7">70%</option><option value="0.8" selected>80%</option><option value="0.9">90%</option></select>
+  <label>Claude API キー(任意・スチュワード審議用)</label>
+  <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
+  <label>モデル</label>
+  <select id="modelSel"><option value="claude-sonnet-5-5">claude-sonnet-5-5</option><option value="claude-haiku-5-5">claude-haiku-5-5</option><option value="claude-opus-5-5">claude-opus-5-5</option></select>
+  <label><input type="checkbox" id="saveKey" style="width:auto;vertical-align:-2px"> このブラウザにキーを保存する</label>
+  <p>キーはこのブラウザから Anthropic API へ直接送信され、他のサーバーには送られません。キーなしでも内蔵AI(ルールベース判定エンジン)で全機能が動作します。キーを設定すると、接触事故などの審議を Claude に依頼できます。</p>
+  <div class="dlgacts"><button class="btn" id="dlgClose">閉じる</button><button class="btn primary" id="dlgSave">保存</button></div>
+</dialog>
+
+<dialog id="dlgResults">
+  <h3>最終結果(ペナルティ反映後)</h3>
+  <table><thead><tr><th>P</th><th>ドライバー</th><th>周</th><th>タイム</th><th>罰</th></tr></thead><tbody id="results"></tbody></table>
+  <div class="dlgacts"><button class="btn" id="resClose">閉じる</button><button class="btn primary" id="resAgain">もう一度</button></div>
+</dialog>
+
+<script>
+'use strict';
+/* =========================================================
+   定数・コース生成
+   ========================================================= */
+const NP = 12;            // マーシャルポスト数(=区間数)
+const HALF_W = 6;         // コース半幅[m]
+const TARGET_LEN = 4300;  // コース長[m]
+const A_LAT = 26, V_TOP = 88, A_BRK = 32, A_ACC = 10;
+const CTRL = [[560,600],[420,600],[300,560],[220,600],[120,520],[120,300],[170,160],[300,100],[460,130],[540,230],[640,250],[760,140],[900,140],[960,260],[900,380],[760,400],[700,480],[760,560],[680,600]];
+
+const T = {};  // track
+function catmull(p0,p1,p2,p3,t){
+  const t2=t*t,t3=t2*t;
+  const f=(a,b,c,d)=>0.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t2+(-a+3*b-3*c+d)*t3);
+  return [f(p0[0],p1[0],p2[0],p3[0]),f(p0[1],p1[1],p2[1],p3[1])];
+}
+function buildTrack(){
+  const P=CTRL,m=P.length,raw=[];
+  for(let i=0;i<m;i++){
+    const p0=P[(i-1+m)%m],p1=P[i],p2=P[(i+1)%m],p3=P[(i+2)%m];
+    for(let j=0;j<40;j++) raw.push(catmull(p0,p1,p2,p3,j/40));
+  }
+  const cum=[0];let Lr=0;
+  for(let i=1;i<=raw.length;i++){const a=raw[i-1],b=raw[i%raw.length];Lr+=Math.hypot(b[0]-a[0],b[1]-a[1]);cum.push(Lr);}
+  const sc=TARGET_LEN/Lr, n=Math.round(TARGET_LEN/2);
+  T.n=n;T.L=TARGET_LEN;T.ds=TARGET_LEN/n;
+  T.x=new Float64Array(n);T.y=new Float64Array(n);
+  let j=0;
+  for(let i=0;i<n;i++){
+    const tg=i*T.ds/sc;
+    while(cum[j+1]<tg) j++;
+    const fr=(tg-cum[j])/(cum[j+1]-cum[j]),a=raw[j],b=raw[(j+1)%raw.length];
+    T.x[i]=(a[0]+(b[0]-a[0])*fr)*sc;T.y[i]=(a[1]+(b[1]-a[1])*fr)*sc;
+  }
+  T.h=new Float64Array(n);T.nx=new Float64Array(n);T.ny=new Float64Array(n);
+  for(let i=0;i<n;i++){const k=(i+1)%n;T.h[i]=Math.atan2(T.y[k]-T.y[i],T.x[k]-T.x[i]);T.nx[i]=-Math.sin(T.h[i]);T.ny[i]=Math.cos(T.h[i]);}
+  const kr=new Float64Array(n);
+  for(let i=0;i<n;i++){let d=T.h[i]-T.h[(i-1+n)%n];while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;kr[i]=Math.abs(d)/T.ds;}
+  T.k=new Float64Array(n);
+  for(let i=0;i<n;i++){let s=0;for(let w=-8;w<=8;w++)s+=kr[(i+w+n)%n];T.k[i]=s/17;}
+  const v=new Float64Array(n);
+  for(let i=0;i<n;i++) v[i]=Math.min(V_TOP,Math.sqrt(A_LAT/Math.max(T.k[i],1e-5)));
+  for(let r=0;r<2;r++)for(let i=n-1;i>=0;i--){const q=(i+1)%n;v[i]=Math.min(v[i],Math.sqrt(v[q]*v[q]+2*A_BRK*T.ds));}
+  for(let r=0;r<2;r++)for(let i=0;i<n;i++){const q=(i-1+n)%n;v[i]=Math.min(v[i],Math.sqrt(v[q]*v[q]+2*A_ACC*T.ds));}
+  T.prof=v;
+  // 中心
+  let cx=0,cy=0;for(let i=0;i<n;i++){cx+=T.x[i];cy+=T.y[i];}T.cx=cx/n;T.cy=cy/n;
+  // コーナー検出 (曲率の山)
+  T.turns=[];let inT=false,best=0,bi=0;
+  for(let i=0;i<n;i++){
+    if(T.k[i]>0.008){if(!inT){inT=true;best=0;}if(T.k[i]>best){best=T.k[i];bi=i;}}
+    else if(inT){inT=false;T.turns.push(bi);}
+  }
+  if(inT)T.turns.push(bi);
+  T.turns=T.turns.map((i,ix)=>({i,s:i*T.ds,name:'T'+(ix+1)}));
+}
+buildTrack();
+const L=T.L, SEC=L/NP;
+const mod=(a,b)=>((a%b)+b)%b;
+const idxOf=sp=>Math.floor(mod(sp,L)/T.ds)%T.n;
+const postOf=sp=>Math.floor(mod(sp,L)/SEC)%NP;
+function placeName(sp){
+  sp=mod(sp,L);let best=null,bd=1e9;
+  for(const t of T.turns){let d=Math.abs(sp-t.s);d=Math.min(d,L-d);if(d<bd){bd=d;best=t;}}
+  if(bd<220) return best.name+'付近';
+  return (sp<350||sp>L-250)?'メインストレート':'ストレート';
+}
+function outwardSign(i){const dx=T.x[i]-T.cx,dy=T.y[i]-T.cy;return (dx*T.nx[i]+dy*T.ny[i])>=0?1:-1;}
+
+/* =========================================================
+   レース状態
+   ========================================================= */
+const DRIVERS=[
+  ['KAZ','K. アズマ','#FF3B55'],['RIV','L. リベラ','#3B9BFF'],['NOV','A. ノヴァク','#FFD12E'],['TAN','R. タナベ','#2FE08A'],
+  ['MOR','J. モローニ','#FF7BD5'],['HAL','E. ハルヴォルセン','#9B7BFF'],['SAK','M. サカキ','#00D5E6'],['DUP','T. デュポン','#FF8A2B'],
+  ['OKA','S. オカベ','#B6F03A'],['WEB','C. ウェーバ','#F4F7FA'],['ITO','Y. イトウ','#E05A2B'],['FER','P. フェラス','#4AE3B5'],
+  ['KIM','D. キム','#C08CFF'],['ARA','H. アライ','#8FB3D9']
+];
+let G, cars, debris, recs, logs, posts;
+let settings={mode:'manual',voice:false,thr:0.8,apiKey:'',model:'claude-sonnet-5-5',laps:15,rate:1,speed:2};
+try{const s=JSON.parse(localStorage.getItem('aimarshal')||'{}');Object.assign(settings,s);}catch(e){}
+function saveSettings(){try{const s={...settings};if(!s.keepKey)delete s.apiKey;localStorage.setItem('aimarshal',JSON.stringify(s));}catch(e){}}
+
+function reset(){
+  G={t:0,started:false,running:false,state:'green',chequered:false,done:false,stateSince:0,clearSince:{},aiTimer:0,
+     rejectUntil:{},recId:0,decisions:0,anomalies:0,collCD:{},pendingColl:[],bestLap:null,finishOrder:0,selected:null,leaderLap:0,
+     prevOrder:new Map(),lastFrame:performance.now()};
+  cars=DRIVERS.map((d,i)=>({id:i,code:d[0],name:d[1],color:d[2],num:[1,4,7,11,16,22,27,31,44,55,63,77,81,88][i],
+    skill:0.985-i*0.006+Math.random()*0.012, aggr:0.2+Math.random()*0.8,
+    s:-(i*11+8), sp:0, d:(i%2?2.4:-2.4), dTarget:(i%2?2.4:-2.4), v:0, state:'run', stateT:0, dur:0,
+    pace:1, overtakeCD:3, dive:0, lineChangeT:99, stopT:0, recovery:0, comp:-1, lapStart:0, lastLap:null, best:null,
+    penalty:0, warnings:0, blue:false, blueT:0, blueFor:null, finished:false, finishTime:0, yaw:0, retiredReason:'', debrisCD:0, posNow:i+1}));
+  for(const c of cars){c.sp=mod(c.s,L);}
+  debris=[];recs=[];logs=[];
+  posts=Array.from({length:NP},(_,i)=>({i,flag:'none',greenUntil:-1,clearSince:0}));
+  renderPosts();renderRecs();renderLog();updateHeader();
+  document.getElementById('btnStart').textContent='スタート';
+}
+
+/* =========================================================
+   ユーティリティ
+   ========================================================= */
+const FLAGR={none:0,white:1,yellow:2,double:3};
+const FLAGJ={none:'なし',white:'白旗',yellow:'イエロー',double:'ダブルイエロー'};
+const GR={green:0,vsc:1,sc:2,red:3};
+const GJ={green:'グリーン',vsc:'VSC',sc:'セーフティカー',red:'赤旗'};
+const fmtT=t=>{if(t==null)return '--';const m=Math.floor(t/60),s=t-m*60;return (m?m+':':'')+(m?s.toFixed(3).padStart(6,'0'):s.toFixed(3));};
+const clock=t=>{const m=Math.floor(t/60),s=t-m*60;return String(m).padStart(2,'0')+':'+s.toFixed(1).padStart(4,'0');};
+const onMap=c=>c.state!=='retired'&&!c.finished;
+const carTag=c=>`#${c.num} ${c.code}`;
+const rnd=Math.random;
+function log(text,cls=''){logs.unshift({t:G.t,text,cls});if(logs.length>200)logs.pop();G.logDirty=true;}
+function speak(text){
+  if(!settings.voice||!('speechSynthesis' in window))return;
+  try{const u=new SpeechSynthesisUtterance(text);u.lang='ja-JP';u.rate=1.15;speechSynthesis.speak(u);}catch(e){}
+}
+function physAhead(c){let best=null,bg=1e9;for(const o of cars){if(o===c||!onMap(o))continue;const g=mod(o.sp-c.sp,L);if(g<bg){bg=g;best=o;}}return best?{car:best,gap:bg}:null;}
+function physBehind(c){let best=null,bg=1e9;for(const o of cars){if(o===c||!onMap(o))continue;const g=mod(c.sp-o.sp,L);if(g<bg){bg=g;best=o;}}return best?{car:best,gap:bg}:null;}
+function leader(){let b=null;for(const c of cars){if(c.state==='retired')continue;if(!b||c.s>b.s)b=c;}return b;}
+function postFlagLvl(p){return FLAGR[posts[p].flag];}
+function onTrack(c){return Math.abs(c.d)<=HALF_W+0.5;}
+function expectedV(c){return T.prof[idxOf(c.sp)]*c.skill;}
+
+/* =========================================================
+   車両挙動
+   ========================================================= */
+function capFor(c){
+  const i=idxOf(c.sp);let cap=T.prof[i]*c.skill*c.pace;
+  if(G.state==='red')return 0;
+  if(G.state==='vsc')return Math.min(cap,T.prof[i]*0.55);
+  if(G.state==='sc'){
+    const ld=leader();
+    if(ld===c)return Math.min(cap,34);
+    const a=physAhead(c);
+    return (a&&a.gap<60)?Math.min(cap,a.car.v+(a.gap-20)*0.4):Math.min(cap*0.8,62);
+  }
+  const look=Math.max(60,c.v*c.v/60);
+  const lv=Math.max(postFlagLvl(postOf(c.sp)),postFlagLvl(postOf(c.sp+look)));
+  if(lv===3)cap=Math.min(cap,T.prof[i]*0.62);
+  else if(lv===2)cap=Math.min(cap,T.prof[i]*0.82);
+  else if(lv===1)cap=Math.min(cap,T.prof[i]*0.93);
+  if(c.blue)cap*=0.92;
+  return cap;
+}
+function noOvertake(c){
+  if(G.state!=='green')return true;
+  return postFlagLvl(postOf(c.sp))>=2||postFlagLvl(postOf(c.sp+80))>=2;
+}
+function setLine(c,d){d=Math.max(-HALF_W+0.8,Math.min(HALF_W-0.8,d));if(Math.abs(d-c.dTarget)>0.5)c.lineChangeT=0;c.dTarget=d;}
+function approach(c,target,dt){
+  if(target>c.v)c.v=Math.min(target,c.v+(A_ACC*1.1*(1-c.v/100)+1.5)*dt);
+  else c.v=Math.max(target,c.v-(G.state==='red'?9:34)*dt);
+  if(c.v<0)c.v=0;
+}
+function moveLat(c,rate,dt){const dd=c.dTarget-c.d;const st=rate*dt;c.d+=Math.abs(dd)<st?dd:Math.sign(dd)*st;}
+
+function spin(c,stallP){c.state='spin';c.stateT=0;c.dur=3+rnd()*4;c.stall=rnd()<stallP;c.spinDrift=(rnd()-0.5)*8;c.dive=0;}
+function mech(c,onTrackP=0.35){c.state='slow';c.stateT=0;c.dur=5+rnd()*6;c.stopOnTrack=rnd()<onTrackP;}
+function goOff(c){c.state='off';c.stateT=0;c.dur=2.5+rnd()*3;c.dOff=(rnd()<0.5?-1:1)*(HALF_W+2+rnd()*6);c.dive=0;}
+
+function updateCar(c,dt){
+  if(!onMap(c))return;
+  c.stateT+=dt;c.lineChangeT+=dt;c.overtakeCD-=dt;c.dive=Math.max(0,c.dive-dt);c.debrisCD-=dt;
+  if(!G.running){c.v=0;return;}
+  const i=idxOf(c.sp);
+  switch(c.state){
+  case 'run':{
+    if(rnd()<dt)c.pace=Math.max(0.975,Math.min(1,c.pace+(rnd()-0.5)*0.01));
+    let target=capFor(c);
+    const a=physAhead(c), noOT=noOvertake(c);
+    // 前方130mの事故車・低速車を回避
+    let obs=null,og=1e9;
+    for(const o of cars){if(o===c||!onMap(o)||!(o.state!=='run'||o.v<12))continue;const g=mod(o.sp-c.sp,L);if(g<130&&g<og&&Math.abs(o.d-c.d)<3.4){og=g;obs=o;}}
+    if(obs){
+      let side=obs.d>0?obs.d-3.9:obs.d+3.9;
+      if(Math.abs(side)>HALF_W-0.8)side=obs.d>0?obs.d+3.9:obs.d-3.9;
+      for(const o of cars){if(o!==obs&&onMap(o)&&o.state!=='run'&&Math.abs(mod(o.sp-obs.sp+L/2,L)-L/2)<25&&Math.abs(o.d-side)<2.2)side=-side;}
+      setLine(c,side);c.overtakeCD=3;c.dive=0;
+      const clearNeed=Math.abs(c.dTarget-c.d)/2.6, tReach=og/Math.max(c.v,1);
+      if(tReach<clearNeed+0.4)target=Math.min(target,Math.max(8,og*1.2));else if(og<40)target=Math.min(target,30);
+    }
+    if(a&&a.gap<45){
+      const o=a.car,dd=Math.abs(o.d-c.d),oInc=o.state!=='run'||o.v<12;
+      if(oInc){/* 上で処理 */}
+      else if(noOT&&G.state!=='green'){
+        target=Math.min(target,o.v+(a.gap-18)*0.4);
+      }else if(dd<2.6){
+        const want=target>o.v+0.6||o.blue;
+        let may=!noOT||o.blue;
+        if(!may&&want&&rnd()<c.aggr*0.25*dt){may=true;c.illegalTry=2;}
+        if(want&&may&&c.overtakeCD<=0){setLine(c,o.d>0?o.d-3.7:o.d+3.7);c.overtakeCD=4;}
+        else if(c.dive<=0) target=Math.min(target,o.v+(a.gap-14)*0.6);
+        // 強引なダイブ (接触の原因)
+        const brakeZone=T.prof[(i+30)%T.n]<T.prof[i]*0.8;
+        if(!noOT&&brakeZone&&a.gap<22&&c.dive<=0&&rnd()<c.aggr*0.05*settings.rate*dt){c.dive=1.4;c.lineChangeT=0;}
+      }
+      if(c.dive>0&&!oInc){target=Math.max(target,o.v+3);c.dTarget=o.d+(c.d>=o.d?1.1:-1.1);}
+    }
+    if(c.illegalTry>0)c.illegalTry-=dt;
+    // 青旗: 道を譲る
+    if(c.blue){const b=physBehind(c);if(b&&b.car.id===c.blueFor&&!c.ignoreBlue)setLine(c,b.car.d>0?-3.8:3.8);}
+    // ライン復帰
+    if(c.overtakeCD<=0&&c.dive<=0&&!c.blue&&Math.abs(c.dTarget)>0.3){
+      let blocked=false;for(const o of cars){if(o===c||!onMap(o))continue;let g=mod(o.sp-c.sp,L);if(g>L/2)g-=L;if(Math.abs(g)<12&&Math.abs(o.d)<2.6)blocked=true;}
+      if(!blocked)setLine(c,0);
+    }
+    approach(c,target,dt);
+    moveLat(c,c.dive>0?3.5:(obs?2.6:2.2),dt);
+    // ミス
+    if(G.t>4&&G.state!=='red'){
+      const w=Math.max(0.1,Math.min(2.5,T.k[i]*90));
+      let rate=(1/800)*(1.3-c.skill)*4*w*settings.rate;
+      if(G.state==='sc'||G.state==='vsc')rate*=0.1;else if(noOT)rate*=0.4;
+      if(rnd()<rate*dt){if(rnd()<0.66)goOff(c);else spin(c,0.3);log(`${carTag(c)} ${c.state==='spin'?'スピン':'コースオフ'}（${placeName(c.sp)}）`,'i');}
+      else if(rnd()<(1/6000)*settings.rate*dt){mech(c);log(`${carTag(c)} 失速 — マシントラブルの可能性`,'i');}
+    }
+    break;}
+  case 'off':
+    c.dTarget=c.dOff;moveLat(c,6,dt);c.v=Math.max(20,c.v-9*dt);
+    if(c.stateT>c.dur){c.state='run';c.overtakeCD=0;setLine(c,(c.dOff>0?1:-1)*(HALF_W-1));c.overtakeCD=1.5;}
+    break;
+  case 'spin':
+    c.v=Math.max(0,c.v-24*dt);c.d=Math.max(-HALF_W-8,Math.min(HALF_W+8,c.d+c.spinDrift*dt*(c.v>1?1:0)));c.dTarget=c.d;
+    c.yaw+=dt*(c.v>1?9:0);
+    if(c.v===0&&c.stateT>c.dur){
+      if(c.stall){c.state='stopped';c.recovery=0;c.stateT=0;log(`${carTag(c)} エンジンストール — 自力復帰不可`,'r');}
+      else{c.state='run';c.yaw=0;c.overtakeCD=1;setLine(c,Math.sign(c.d||1)*Math.min(Math.abs(c.d),HALF_W-1));}
+    }
+    break;
+  case 'slow':{
+    moveLat(c,1.5,dt);
+    if(c.stateT<=c.dur)approach(c,Math.min(16,capFor(c)),dt);
+    else{
+      c.dTarget=c.stopOnTrack?c.d:(c.d>=0?1:-1)*(HALF_W+5);
+      c.v=Math.max(0,c.v-6*dt);
+      if(c.v===0){c.state='stopped';c.recovery=0;c.stateT=0;log(`${carTag(c)} ${onTrack(c)?'コース上':'コース脇'}に停止（${placeName(c.sp)}）`,'r');}
+    }
+    break;}
+  case 'stopped':{
+    c.v=0;moveLat(c,1.5,dt);
+    c.recovery+=protection(c.sp)*(onTrack(c)?1:1.6)*dt/14;
+    if(c.recovery>=1){c.state='retired';c.retiredReason='DNF';log(`マーシャルが ${carTag(c)} を回収（リタイア）`,'g');}
+    break;}
+  }
+  c.s+=c.v*dt;c.sp=mod(c.s,L);
+  // デブリ踏み
+  if(c.state==='run'&&c.debrisCD<=0)for(const d of debris){const g=Math.abs(mod(d.sp-c.sp+L/2,L)-L/2);if(g<3&&Math.abs(d.d-c.d)<1.2){c.debrisCD=4;if(rnd()<0.12){mech(c,0.5);log(`${carTag(c)} デブリを踏みパンク`,'r');}}}
+  // 周回
+  const comp=Math.floor(c.s/L);
+  if(comp>c.comp){
+    if(comp>=1){const lt=G.t-c.lapStart;c.lastLap=lt;if(!c.best||lt<c.best)c.best=lt;if(!G.bestLap||lt<G.bestLap.t){if(G.bestLap&&lt<G.bestLap.t)log(`ファステストラップ ${carTag(c)} ${fmtT(lt)}`,'a');G.bestLap={t:lt,c:c.code};}}
+    c.lapStart=G.t;c.comp=comp;
+    if(G.chequered&&comp>=1){c.finished=true;c.finishTime=G.t;c.finishOrder=++G.finishOrder;}
+    else if(comp>=settings.laps&&!G.chequered){G.chequered=true;c.finished=true;c.finishTime=G.t;c.finishOrder=++G.finishOrder;log(`チェッカーフラッグ — ${carTag(c)} がトップでフィニッシュ`,'g');speak('チェッカーフラッグ');}
+  }
+}
+function protection(sp){
+  if(G.state==='red')return 2.2;if(G.state==='sc')return 1.8;if(G.state==='vsc')return 1.4;
+  return [0.12,0.3,0.55,1.0][postFlagLvl(postOf(sp))];
+}
+
+/* 接触判定 */
+function contacts(){
+  for(const c of cars){
+    if(!onMap(c))continue;
+    for(const o of cars){
+      if(o===c||!onMap(o))continue;
+      const g=mod(o.sp-c.sp,L);
+      if(g<4.5&&Math.abs(o.d-c.d)<1.9){
+        const key=c.id+'-'+o.id;
+        if((G.collCD[key]||0)>G.t)continue;
+        G.collCD[key]=G.t+4;G.collCD[o.id+'-'+c.id]=G.t+4;
+        collide(c,o);
+      }
+    }
+  }
+}
+function collide(rear,front){
+  const rel=rear.v-front.v;
+  G.collCD[rear.id+'-'+front.id]=G.t+4;G.collCD[front.id+'-'+rear.id]=G.t+4;
+  if(rel<2.5&&!rear.dive){rear.v=Math.max(0,front.v-1.5);return;}
+  const sev=Math.min(1,Math.max(0,rel/15))+(rear.dive?0.3:0)+(front.state==='stopped'?0.4:0);
+  const frontWasStopped=front.state!=='run';
+  const ev={t:G.t,rear,front,rel:Math.max(0,rel),rv:rear.v,fv:front.v,dive:rear.dive>0,frontLine:front.lineChangeT,
+    rearLine:rear.lineChangeT,lap:Math.max(1,rear.comp+1),place:placeName(front.sp),post:postOf(front.sp),frontWasStopped,
+    flag:G.state!=='green'?GJ[G.state]:FLAGJ[posts[postOf(front.sp)].flag],yellowOT:noOvertake(rear)};
+  if(front.state==='run'){if(rnd()<0.5+sev*0.3)spin(front,0.15+sev*0.4);else front.v*=0.85;}
+  if(rear.state==='run'){if(rnd()<0.25+sev*0.35)spin(rear,0.1+sev*0.35);else rear.v=Math.max(0,front.v*0.85);}
+  if(rnd()<0.25+sev*0.4){const n=1+Math.floor(rnd()*3);for(let k=0;k<n;k++)debris.push({id:rnd(),sp:mod(front.sp+rnd()*20,L),d:front.d+(rnd()-0.5)*5,clear:0});}
+  if(rnd()<0.12+sev*0.25&&front.state==='run')mech(front,0.5);
+  log(`接触！ ${carTag(rear)} → ${carTag(front)}（${ev.place}）`,'r');speak(`接触。${rear.code}、${front.code}`);
+  G.pendingColl.push(ev);
+}
+
+/* 追い越し検知 (黄旗・SC中の違反) */
+function overtakeWatch(){
+  const runCars=cars.filter(onMap);
+  for(const a of runCars)for(const b of runCars){
+    if(a.id>=b.id)continue;
+    const k=a.id+'-'+b.id, now=Math.sign(a.s-b.s), prev=G.prevOrder.get(k);
+    G.prevOrder.set(k,now);
+    if(prev===undefined||prev===now||now===0||G.t<6)continue;
+    const passer=now>0?a:b, passed=now>0?b:a;
+    if(Math.abs(passer.s-passed.s)>30)continue;           // 同一地点の通過のみ
+    if(passed.state!=='run'||passed.v<expectedV(passed)*0.6||passed.blue||!onTrack(passed)||passer.state!=='run')continue;
+    const p=postOf(passer.sp);
+    const cond=G.state==='sc'?'SC中':G.state==='vsc'?'VSC中':postFlagLvl(p)>=2?`ポスト${p+1} ${FLAGJ[posts[p].flag]}区間`:null;
+    if(cond&&G.state!=='red'){
+      log(`${carTag(passer)} が ${carTag(passed)} を追い越し — ${cond}`,'i');
+      upsertRec('pen:ot:'+passer.id+':'+Math.floor(G.t),{kind:'penalty',carId:passer.id,sec:5,
+        title:`${carTag(passer)} 5秒ペナルティ`,reason:`${cond}での追い越し（${carTag(passed)}を${placeName(passer.sp)}でパス）。黄旗区間での追い越し禁止違反。`,conf:0.86,
+        evidence:{type:'黄旗区間での追い越し',lap:passer.comp+1,passer:carTag(passer),passed:carTag(passed),condition:cond,place:placeName(passer.sp),passerSpeedKmh:Math.round(passer.v*3.6),passedSpeedKmh:Math.round(passed.v*3.6)}});
+    }
+  }
+}
+
+/* =========================================================
+   AI 判定エンジン (テレメトリー → 推奨)
+   ========================================================= */
+function aiCycle(){
+  if(!G.running||G.done)return;
+  const want=Array.from({length:NP},()=>({lvl:0,why:[]}));
+  const bump=(p,l,w)=>{p=mod(p,NP);if(l>want[p].lvl)want[p].lvl=l;if(w)want[p].why.push(w);};
+  let stoppedOn=[],stoppedOff=[],anomalies=0;
+  for(const c of cars){
+    if(!onMap(c))continue;
+    const p=postOf(c.sp),ot=onTrack(c),pl=placeName(c.sp);
+    c.stopT=(c.v<2&&G.state!=='red')?c.stopT+0.5:0;
+    if(c.stopT>=1){
+      anomalies++;
+      if(ot){bump(p,3,`${carTag(c)} がコース上で停止（${pl}, ${c.stopT.toFixed(0)}秒）`);bump(p-1,2);stoppedOn.push(c);}
+      else{bump(p,2,`${carTag(c)} がコース外で停止（${pl}）`);stoppedOff.push(c);}
+    }else if(c.state==='spin'){
+      anomalies++;bump(p,3,`${carTag(c)} スピン検知（ヨーレート異常, ${pl}）`);bump(p-1,2);
+    }else if(!ot){
+      anomalies++;bump(p,2,`${carTag(c)} コースアウト（横位置 ${Math.abs(c.d).toFixed(1)}m, ${pl}）`);
+    }else if(c.v>2&&c.v<expectedV(c)*0.5&&G.state==='green'&&postFlagLvl(p)<2){
+      anomalies++;bump(p,1,`${carTag(c)} 低速走行（${Math.round(c.v*3.6)}km/h, 期待値 ${Math.round(expectedV(c)*3.6)}km/h）`);
+    }
+  }
+  let debrisOn=0;
+  for(const d of debris){
+    const lvl=protection(d.sp);d.clear+=(lvl>=1?lvl:lvl*0.2)*0.5/10;
+    if(Math.abs(d.d)<HALF_W){debrisOn++;anomalies++;bump(postOf(d.sp),3,`コース上にデブリ（${placeName(d.sp)}）`);}
+  }
+  const before=debris.length;debris=debris.filter(d=>d.clear<1);if(before&&!debris.length)log('デブリ撤去完了','g');
+  G.anomalies=anomalies;
+
+  // ---- 全体コール ----
+  let gWant='green',gWhy=[],gConf=0.8;
+  const needRec=[...stoppedOn,...stoppedOff].filter(c=>c.state==='stopped');
+  if(stoppedOn.length>=3||debrisOn>=5){gWant='red';gWhy.push(`コース上停止 ${stoppedOn.length}台 / デブリ ${debrisOn}個 — 安全な走行継続が困難`);gConf=0.88;}
+  else if(stoppedOn.length>=2||needRec.some(c=>onTrack(c)&&c.stopT>6)||debrisOn>=3){gWant='sc';gWhy.push(stoppedOn.length?`コース上に停止車両（${stoppedOn.map(carTag).join(', ')}）— 回収作業が必要`:`デブリ多数(${debrisOn}) — 清掃が必要`);gConf=stoppedOn.some(c=>c.stopT>10)?0.92:0.84;}
+  else if(needRec.some(c=>c.stopT>8)||debrisOn>=1){gWant='vsc';gWhy.push(needRec.length?`${needRec.map(carTag).join(', ')} の回収作業中、マーシャル保護のため`:'デブリ清掃中、マーシャル保護のため');gConf=0.8;}
+  const cur=G.state;
+  if(GR[gWant]>GR[cur]){
+    upsertRec('g:'+gWant,{kind:'global',global:gWant,title:`${GJ[gWant]} 導入`,reason:gWhy.join(' / '),conf:gConf});
+  }else if(GR[gWant]<GR[cur]){
+    G.clearSince.g=G.clearSince.g??G.t;
+    if(G.t-G.clearSince.g>=5){
+      const to=cur==='red'?(gWant==='green'?'sc':gWant):gWant;
+      upsertRec('g:'+to,{kind:'global',global:to,title:to==='green'?`${GJ[cur]} 解除 → グリーン`:`${GJ[cur]} → ${GJ[to]}`,
+        reason:cur==='red'?'コースのクリアを確認。SC先導でレース再開を推奨':'停止車両・デブリの回収完了を確認。コースクリア',conf:0.85});
+    }
+  }
+  if(GR[gWant]>=GR[cur])G.clearSince.g=null;
+
+  // ---- ポスト別フラッグ ----
+  for(let p=0;p<NP;p++){
+    const w=want[p],curL=postFlagLvl(p);
+    if(w.lvl>=curL)posts[p].clearSince=G.t;
+    const fl=Object.keys(FLAGR).find(k=>FLAGR[k]===w.lvl);
+    if(w.lvl>curL){
+      upsertRec('p:'+p+':'+fl,{kind:'post',post:p,flag:fl,title:`ポスト${p+1} ${FLAGJ[fl]}`,
+        reason:w.why.length?w.why.join(' / '):`隣接区間ポスト${p+2>NP?1:p+2}の事故に対する予告`,conf:[0,0.72,0.86,0.93][w.lvl]});
+    }else if(w.lvl<curL&&G.t-posts[p].clearSince>=4){
+      upsertRec('p:'+p+':'+fl,{kind:'post',post:p,flag:fl,title:fl==='none'?`ポスト${p+1} 解除（グリーン）`:`ポスト${p+1} ${FLAGJ[fl]}へ緩和`,
+        reason:'区間内の異常が解消（4秒以上クリア）',conf:0.82});
+    }
+  }
+
+  // ---- 青旗 ----
+  for(const c of cars){
+    if(!onMap(c)||c.state!=='run')continue;
+    const b=physBehind(c);
+    if(c.blue){
+      c.blueT+=0.5;
+      const f=cars[c.blueFor];
+      if(!f||!onMap(f)||f.s>c.s+5){c.blue=false;c.ignoreBlue=false;continue;}
+      if(c.blueT>9&&!c.blueWarned){c.blueWarned=true;
+        upsertRec('pen:blue:'+c.id+':'+Math.floor(G.t),{kind:'penalty',carId:c.id,sec:5,title:`${carTag(c)} 5秒ペナルティ`,reason:`青旗を${c.blueT.toFixed(0)}秒間無視し、周回遅れとして ${carTag(f)} の進路を妨害。`,conf:0.8,
+          evidence:{type:'青旗無視',lap:c.comp+1,car:carTag(c),lappingCar:carTag(f),secondsIgnored:c.blueT}});}
+      continue;
+    }
+    if(G.state!=='green'||!b||b.gap>70)continue;
+    const f=b.car;
+    if(f.state==='run'&&f.s>c.s+L*0.6&&b.gap/Math.max(f.v,20)<1.6){
+      upsertRec('b:'+c.id,{kind:'blue',carId:c.id,forId:f.id,title:`${carTag(c)} に青旗`,reason:`周回遅れ。後方 ${(b.gap/Math.max(f.v,20)).toFixed(1)}秒 に ${carTag(f)}（${Math.floor((f.s-c.s)/L)}周差）`,conf:0.9});
+    }
+  }
+
+  // ---- 接触審議 ----
+  G.pendingColl=G.pendingColl.filter(ev=>{
+    if(G.t-ev.t<3)return true;
+    stewardCollision(ev);return false;
+  });
+  // 古い未処理推奨を失効
+  for(const r of recs){if(r.status==='pending'&&r.kind!=='penalty'&&r.seen<G.t-1.2){r.status='expired';G.recDirty=true;}}
+  recs=recs.filter(r=>r.status!=='expired');
+}
+
+function stewardCollision(ev){
+  const {rear,front}=ev;
+  let blame=0.7,notes=[];
+  if(ev.dive){blame=0.9;notes.push(`${rear.code}はブレーキング区間で強引にイン側へ飛び込み`);}
+  if(ev.frontLine<1.5){blame-=0.3;notes.push(`${front.code}は接触${ev.frontLine.toFixed(1)}秒前にライン変更`);}
+  if(ev.frontWasStopped){blame=0.6;notes.push(`${front.code}は既に停止/スピン中で回避可能性あり`);}
+  if(ev.rel>8){blame+=0.08;notes.push(`接近速度差 ${Math.round(ev.rel*3.6)}km/h`);}
+  if(ev.yellowOT){blame+=0.1;notes.push(`接触地点は${ev.flag}`);}
+  blame=Math.max(0.1,Math.min(0.97,blame));
+  const outcome=front.state==='retired'||front.state==='stopped'?'リタイア/停止':front.state==='spin'||front.state==='slow'?'スピン/損傷':'軽微';
+  let sec=0,title,decision;
+  if(blame>=0.7){sec=outcome==='リタイア/停止'?10:outcome==='スピン/損傷'?5:0;decision=sec?`${sec}秒ペナルティ`:'警告';}
+  else decision='レーシングインシデント（処分なし）';
+  title=sec?`${carTag(rear)} ${decision}`:(decision==='警告'?`${carTag(rear)} 警告`:`審議 ${rear.code} vs ${front.code}：処分なし`);
+  const reason=`Lap${ev.lap} ${ev.place} での接触。${notes.join('、')||`${rear.code}が後方から追突`}。${front.code}の被害: ${outcome}。${rear.code}の責任度 ${Math.round(blame*100)}%。`;
+  upsertRec('pen:col:'+ev.t.toFixed(2),{kind:'penalty',carId:rear.id,sec,warn:decision==='警告',nfa:blame<0.7,title,reason,conf:Math.abs(blame-0.6)+0.5>0.97?0.97:Math.abs(blame-0.6)+0.5,
+    evidence:{type:'接触',lap:ev.lap,place:ev.place,rearCar:carTag(rear),frontCar:carTag(front),rearSpeedKmh:Math.round(ev.rv*3.6),frontSpeedKmh:Math.round(ev.fv*3.6),
+      closingSpeedKmh:Math.round(ev.rel*3.6),rearDiveBraking:ev.dive,frontLineChangeSecondsBefore:+ev.frontLine.toFixed(1),frontWasAlreadyStoppedOrSpinning:ev.frontWasStopped,
+      flagAtLocation:ev.flag,damageToFrontCar:outcome,ruleEngineBlameRear:Math.round(blame*100)+'%',ruleEngineSuggestion:decision}});
+  log(`スチュワード審議: ${rear.code} vs ${front.code} → AI推奨「${decision}」`,'a');
+}
+
+/* =========================================================
+   推奨の管理
+   ========================================================= */
+function upsertRec(key,data){
+  if((G.rejectUntil[key]||0)>G.t)return;
+  let r=recs.find(x=>x.key===key&&x.status==='pending');
+  if(r){Object.assign(r,data);r.seen=G.t;G.recDirty=true;return;}
+  if(recs.some(x=>x.key===key&&x.status!=='pending'&&G.t-x.t<2))return;
+  r={id:++G.recId,key,t:G.t,seen:G.t,status:'pending',...data};
+  recs.unshift(r);G.recDirty=true;
+  if(settings.mode==='auto'&&r.kind!=='penalty'&&r.conf>=settings.thr){applyRec(r,'auto');}
+  else if(r.kind!=='blue'){speak('AI推奨。'+r.title.replace(/#\d+ /g,''));}
+  if(recs.length>60)recs.length=60;
+}
+function applyRec(r,by){
+  r.status=by==='auto'?'auto':'applied';G.decisions++;G.recDirty=true;
+  const who=by==='auto'?'AI自動':'承認';
+  if(r.kind==='post')setPostFlag(r.post,r.flag,who);
+  else if(r.kind==='global')setGlobal(r.global,who);
+  else if(r.kind==='blue'){const c=cars[r.carId];c.blue=true;c.blueT=0;c.blueFor=r.forId;c.blueWarned=false;c.ignoreBlue=rnd()<c.aggr*0.25;log(`青旗 → ${carTag(c)}（${who}）`,'b');}
+  else if(r.kind==='penalty'){
+    const c=cars[r.carId];
+    if(r.sec){c.penalty+=r.sec;log(`ペナルティ確定: ${carTag(c)} +${r.sec}秒`,'r');speak(`${c.code}、${r.sec}秒ペナルティ`);}
+    else if(r.warn){c.warnings++;log(`警告: ${carTag(c)}`,'i');}
+    else log(`審議終了: ${r.title}`,'g');
+  }
+}
+function rejectRec(r){r.status='rejected';G.rejectUntil[r.key]=G.t+15;G.recDirty=true;log(`却下: ${r.title}`,'');}
+
+function setPostFlag(p,flag,by='手動'){
+  const prev=posts[p].flag;if(prev===flag)return;
+  posts[p].flag=flag;posts[p].clearSince=G.t;
+  if(flag==='none'){posts[p].greenUntil=G.t+8;log(`ポスト${p+1} グリーン（${by}）`,'g');speak(`ポスト${p+1}、グリーン`);}
+  else{log(`ポスト${p+1} ${FLAGJ[flag]}（${by}）`,flag==='white'?'':'i');speak(`ポスト${p+1}、${FLAGJ[flag]}`);}
+  renderPosts();
+}
+function setGlobal(st,by='手動'){
+  if(G.state===st)return;
+  const prev=G.state;G.state=st;G.stateSince=G.t;G.clearSince.g=null;
+  if(st==='green'){for(const p of posts)if(p.flag!=='none'){p.flag='none';p.greenUntil=G.t+8;}log(`${GJ[prev]} 解除 — グリーンフラッグ（${by}）`,'g');speak('グリーンフラッグ。レース再開');}
+  else{log(`${GJ[st]}（${by}）`,st==='red'?'r':'i');speak(GJ[st]);for(const c of cars){c.blue=false;}}
+  renderPosts();updateHeader();
+}
+
+/* =========================================================
+   Claude スチュワード
+   ========================================================= */
+async function askClaude(r){
+  if(!settings.apiKey){openSettings();return;}
+  r.claude={state:'loading'};G.recDirty=true;renderRecs();
+  const sys='あなたは国際モータースポーツ競技規則に精通したレーススチュワードです。レースゲーム内で発生したインシデントのテレメトリー証拠を読み、公平に裁定してください。出力は次のJSONのみ: {"decision":"処分なし|警告|5秒ペナルティ|10秒ペナルティ|ドライブスルー","penaltySeconds":数値,"responsible":"車両名または両者","reasoning":"日本語で2〜3文の理由"}';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:settings.model,max_tokens:700,system:sys,messages:[{role:'user',content:'インシデント証拠:\n'+JSON.stringify(r.evidence,null,1)}]})});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data?.error?.message||('HTTP '+res.status));
+    const txt=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    const m=txt.match(/\{[\s\S]*\}/);const j=m?JSON.parse(m[0]):null;
+    if(!j)throw new Error('応答を解析できませんでした');
+    r.claude={state:'done',...j};
+    if(r.status==='pending'){
+      const sec=Number(j.penaltySeconds)||0;r.sec=sec;r.warn=/警告/.test(j.decision);r.nfa=!sec&&!r.warn;
+      r.title=sec?`${carTag(cars[r.carId])} ${sec}秒ペナルティ`:r.warn?`${carTag(cars[r.carId])} 警告`:`${r.title.replace(/：.*$/,'')}：処分なし`;
+    }
+    log(`Claudeスチュワード裁定: ${j.decision}`,'a');
+  }catch(e){r.claude={state:'error',msg:String(e.message||e)};}
+  G.recDirty=true;renderRecs();
+}
+
+/* =========================================================
+   シナリオ注入
+   ========================================================= */
+function pickCar(f=c=>c.state==='run'){const l=cars.filter(c=>onMap(c)&&f(c));return l[Math.floor(rnd()*l.length)];}
+function inject(x){
+  if(!G.running){log('レース開始後に使用できます','');renderLog();return;}
+  const c=pickCar();if(!c)return;
+  if(x==='spin'){spin(c,0.3);log(`[訓練] ${carTag(c)} スピン（${placeName(c.sp)}）`,'i');}
+  else if(x==='mech'){mech(c,0.2);log(`[訓練] ${carTag(c)} マシントラブル`,'i');}
+  else if(x==='stop'){spin(c,1);c.spinDrift=0;c.d=(rnd()-0.5)*4;log(`[訓練] ${carTag(c)} コース上でストップ（${placeName(c.sp)}）`,'r');}
+  else if(x==='debris'){for(let k=0;k<3;k++)debris.push({id:rnd(),sp:mod(c.sp+80+k*6,L),d:(rnd()-0.5)*6,clear:0});log(`[訓練] デブリ発生（${placeName(c.sp+80)}）`,'i');}
+  else if(x==='contact'){const b=physBehind(c);if(b){b.car.s=c.s-3;b.car.sp=mod(b.car.s,L);b.car.d=c.d;b.car.dive=1;b.car.v=c.v+8;collide(b.car,c);}}
+  else if(x==='multi'){
+    const list=[c];let cur=c;for(let k=0;k<3;k++){const b=physBehind(cur);if(b&&!list.includes(b.car)){list.push(b.car);cur=b.car;}}
+    list.forEach((o,k)=>{o.s=c.s-k*7;o.sp=mod(o.s,L);spin(o,0.8);o.spinDrift=(rnd()-0.5)*3;});
+    for(let k=0;k<5;k++)debris.push({id:rnd(),sp:mod(c.sp+rnd()*30,L),d:(rnd()-0.5)*8,clear:0});
+    log(`[訓練] 多重クラッシュ発生 ${list.map(carTag).join(', ')}（${placeName(c.sp)}）`,'r');speak('多重クラッシュ発生');
+  }
+  renderLog();
+}
+
+/* =========================================================
+   描画
+   ========================================================= */
+const cv=document.getElementById('map'),ctx=cv.getContext('2d');
+let view={sc:1,ox:0,oy:0,w:0,h:0};
+function resize(){
+  const r=cv.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  for(let i=0;i<T.n;i++){x0=Math.min(x0,T.x[i]);x1=Math.max(x1,T.x[i]);y0=Math.min(y0,T.y[i]);y1=Math.max(y1,T.y[i]);}
+  const pad=60;const sc=Math.min((r.width-pad*2/1.4)/(x1-x0),(r.height-pad*2)/(y1-y0));
+  view={sc,ox:(r.width-(x1-x0)*sc)/2-x0*sc,oy:(r.height-(y1-y0)*sc)/2-y0*sc,w:r.width,h:r.height};
+}
+const X=x=>view.ox+x*view.sc,Y=y=>view.oy+y*view.sc;
+function pathRange(a,b){ctx.beginPath();for(let i=a;i<=b;i++){const k=i%T.n;i===a?ctx.moveTo(X(T.x[k]),Y(T.y[k])):ctx.lineTo(X(T.x[k]),Y(T.y[k]));}}
+function carXY(c){const i=idxOf(c.sp);return [T.x[i]+T.nx[i]*c.d,T.y[i]+T.ny[i]*c.d,T.h[i]];}
+function draw(){
+  const {w,h,sc}=view;ctx.clearRect(0,0,w,h);
+  // グリッド背景
+  ctx.strokeStyle='rgba(255,255,255,.025)';ctx.lineWidth=1;
+  for(let x=0;x<w;x+=28){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+  for(let y=0;y<h;y+=28){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+  const tw=Math.max(7,HALF_W*2*sc);
+  ctx.lineJoin='round';ctx.lineCap='round';
+  pathRange(0,T.n);ctx.strokeStyle='#141b23';ctx.lineWidth=tw+22*sc+6;ctx.stroke();
+  ctx.strokeStyle='#c8d2dc';ctx.lineWidth=tw+3;ctx.stroke();
+  ctx.strokeStyle='#2a333e';ctx.lineWidth=tw;ctx.stroke();
+  // 区間フラッグのオーバーレイ
+  const per=T.n/NP;
+  for(let p=0;p<NP;p++){
+    const f=posts[p].flag,gr=posts[p].greenUntil>G.t;
+    let col=null;
+    if(G.state==='sc'||G.state==='vsc')col='rgba(255,176,32,.42)';
+    else if(G.state==='red')col='rgba(255,59,85,.45)';
+    else if(f==='double')col='rgba(255,209,46,.62)';else if(f==='yellow')col='rgba(255,209,46,.38)';
+    else if(f==='white')col='rgba(244,247,250,.3)';else if(gr)col='rgba(47,224,138,.4)';
+    if(col){pathRange(Math.round(p*per),Math.round((p+1)*per));ctx.strokeStyle=col;ctx.lineWidth=tw;ctx.stroke();}
+  }
+  // セクター境界 & ポスト
+  ctx.font='600 10px Orbitron, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  for(let p=0;p<NP;p++){
+    const i=Math.round(p*per)%T.n,sg=outwardSign(i),off=HALF_W+22;
+    ctx.beginPath();ctx.moveTo(X(T.x[i]+T.nx[i]*HALF_W),Y(T.y[i]+T.ny[i]*HALF_W));ctx.lineTo(X(T.x[i]-T.nx[i]*HALF_W),Y(T.y[i]-T.ny[i]*HALF_W));
+    ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=1;ctx.stroke();
+    const px=X(T.x[i]+T.nx[i]*off*sg),py=Y(T.y[i]+T.ny[i]*off*sg);
+    const f=posts[p].flag,gr=posts[p].greenUntil>G.t;
+    let fc=f==='double'||f==='yellow'?'#FFD12E':f==='white'?'#F4F7FA':gr?'#2FE08A':'#1b242e';
+    if(G.state==='sc'||G.state==='vsc')fc='#FFB020';if(G.state==='red')fc='#FF3B55';
+    ctx.beginPath();ctx.arc(px,py,9,0,Math.PI*2);ctx.fillStyle=fc;ctx.fill();ctx.strokeStyle='#3a4757';ctx.lineWidth=1;ctx.stroke();
+    if(f==='double'&&G.state==='green'&&Math.floor(G.t*3)%2){ctx.beginPath();ctx.arc(px,py,13,0,Math.PI*2);ctx.strokeStyle='#FFD12E';ctx.stroke();}
+    ctx.fillStyle=fc==='#1b242e'?'#8797A8':'#111';ctx.fillText(String(p+1),px,py+0.5);
+  }
+  // コーナー名
+  ctx.font='500 9px JetBrains Mono, monospace';ctx.fillStyle='rgba(135,151,168,.65)';
+  for(const t of T.turns){const i=t.i,sg=outwardSign(i);ctx.fillText(t.name,X(T.x[i]-T.nx[i]*sg*26),Y(T.y[i]-T.ny[i]*sg*26));}
+  // スタートライン
+  {const i=0,a=T.nx[i]*HALF_W,b=T.ny[i]*HALF_W;
+   ctx.beginPath();ctx.moveTo(X(T.x[i]+a),Y(T.y[i]+b));ctx.lineTo(X(T.x[i]-a),Y(T.y[i]-b));ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);}
+  // デブリ
+  for(const d of debris){const i=idxOf(d.sp);ctx.fillStyle='#d9e1e8';ctx.beginPath();ctx.arc(X(T.x[i]+T.nx[i]*d.d),Y(T.y[i]+T.ny[i]*d.d),2,0,Math.PI*2);ctx.fill();}
+  // SC
+  if(G.state==='sc'){const ld=leader();if(ld&&onMap(ld)){const i=idxOf(ld.sp+35);const x=X(T.x[i]),y=Y(T.y[i]);ctx.fillStyle='#FFB020';ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#231500';ctx.font='800 7px Orbitron';ctx.fillText('SC',x,y+0.5);}}
+  // 車両
+  const r=Math.max(4.2,2.6*sc);
+  ctx.font='700 9.5px JetBrains Mono, monospace';
+  const order=cars.filter(onMap).sort((a,b)=>a.s-b.s);
+  for(const c of order){
+    const [x,y,hd]=carXY(c),sx=X(x),sy=Y(y);
+    if(c.state==='stopped'||(c.stopT>=1)){ctx.beginPath();ctx.arc(sx,sy,r+5+Math.sin(G.t*8)*1.5,0,Math.PI*2);ctx.strokeStyle='#FF3B55';ctx.lineWidth=2;ctx.stroke();}
+    if(c.blue){ctx.beginPath();ctx.arc(sx,sy,r+3,0,Math.PI*2);ctx.strokeStyle='#3B9BFF';ctx.lineWidth=2;ctx.stroke();}
+    ctx.save();ctx.translate(sx,sy);ctx.rotate(hd+(c.state==='spin'||c.state==='stopped'?c.yaw:0));
+    ctx.fillStyle=c.color;ctx.beginPath();ctx.moveTo(r*1.4,0);ctx.lineTo(-r,r*0.85);ctx.lineTo(-r,-r*0.85);ctx.closePath();ctx.fill();
+    if(G.selected===c.id){ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();}
+    ctx.restore();
+    if(G.selected===c.id||c.state!=='run'||c.stopT>=1||!onTrack(c)||sc>0.12){
+      ctx.fillStyle=G.selected===c.id?'#fff':'rgba(234,241,246,.75)';ctx.textAlign='left';ctx.fillText(c.code,sx+r+4,sy-r-2);ctx.textAlign='center';
+    }
+  }
+  // バナー
+  let banner=null,bc='';
+  if(!G.started){banner='GRID — スタートを押してください';bc='#8797A8';}
+  else if(G.state==='sc'){banner='SAFETY CAR DEPLOYED';bc='#FFB020';}
+  else if(G.state==='vsc'){banner='VIRTUAL SAFETY CAR';bc='#FFB020';}
+  else if(G.state==='red'){banner='RED FLAG — レース中断';bc='#FF3B55';}
+  else if(G.chequered){banner='CHEQUERED FLAG';bc='#F4F7FA';}
+  if(banner){ctx.font='800 12px Orbitron, sans-serif';ctx.textAlign='left';const tw2=ctx.measureText(banner).width;ctx.fillStyle='rgba(7,9,13,.8)';ctx.fillRect(10,10,tw2+20,26);ctx.fillStyle=bc;ctx.fillRect(10,10,4,26);ctx.fillText(banner,22,23.5);ctx.textAlign='center';}
+}
+cv.addEventListener('click',e=>{
+  const r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;let best=null,bd=24;
+  for(const c of cars){if(!onMap(c))continue;const [x,y]=carXY(c);const d=Math.hypot(X(x)-mx,Y(y)-my);if(d<bd){bd=d;best=c;}}
+  G.selected=best?(G.selected===best.id?null:best.id):null;renderTower();
+});
+
+/* =========================================================
+   UI レンダリング
+   ========================================================= */
+const $=id=>document.getElementById(id);
+function renderPosts(){
+  $('posts').innerHTML=posts.map(p=>`<button class="post${p.greenUntil>G.t&&p.flag==='none'?' green':''}" data-p="${p.i}" data-f="${p.flag}"><div class="n">POST ${p.i+1}</div><div class="f"></div><div class="l">${p.flag==='none'?(p.greenUntil>G.t?'グリーン':'—'):FLAGJ[p.flag]}</div></button>`).join('');
+  document.querySelectorAll('.globals button').forEach(b=>b.classList.toggle('on',b.dataset.g===G.state&&G.started));
+}
+function recColor(r){
+  if(r.kind==='global')return r.global==='red'?'var(--red)':r.global==='green'?'var(--green)':'var(--sc)';
+  if(r.kind==='post')return r.flag==='none'?'var(--green)':r.flag==='white'?'var(--white)':'var(--yellow)';
+  if(r.kind==='blue')return 'var(--blue)';
+  return r.nfa?'var(--ink-soft)':'var(--red)';
+}
+function renderRecs(){
+  G.recDirty=false;
+  const list=[...recs].sort((a,b)=>(a.status==='pending'?0:1)-(b.status==='pending'?0:1)||b.t-a.t).slice(0,30);
+  if(!list.length){$('recList').innerHTML=`<div class="empty">${G.started?'異常なし — AIが全車を監視中':'レースを開始すると、AIが全車のテレメトリー(速度・横位置・停止時間・車間)を監視し、<br>フラッグ・SC・ペナルティを推奨します。'}</div>`;return;}
+  $('recList').innerHTML=list.map(r=>{
+    const c=recColor(r),pen=r.kind==='penalty';
+    const st=r.status==='pending'?'':`<div class="st" style="color:${r.status==='rejected'?'var(--ink-faint)':'var(--green)'}">${r.status==='auto'?'✓ AI自動適用':r.status==='applied'?'✓ 承認・適用済':'× 却下'}</div>`;
+    let cl='';
+    if(r.claude){
+      if(r.claude.state==='loading')cl='<div class="claude">Claude スチュワードが審議中…</div>';
+      else if(r.claude.state==='error')cl=`<div class="claude" style="color:var(--red)">Claude審議エラー: ${esc(r.claude.msg)}</div>`;
+      else cl=`<div class="claude"><b>Claude裁定：${esc(r.claude.decision||'')}</b>${r.claude.responsible?`（責任: ${esc(r.claude.responsible)}）`:''}<br>${esc(r.claude.reasoning||'')}</div>`;
+    }
+    const acts=r.status==='pending'?`<div class="acts"><button class="ok" data-a="ok" data-id="${r.id}">${pen?'裁定を確定':'承認・適用'}</button><button data-a="no" data-id="${r.id}">却下</button>${pen&&r.evidence?`<button class="ai" data-a="claude" data-id="${r.id}">Claudeに審議依頼</button>`:''}</div>`:'';
+    return `<div class="rec${r.status!=='pending'?' done':''}" style="--c:${c}"><div class="hd"><span class="tt">${esc(r.title)}</span><span class="tm">${clock(r.t)}</span></div><div class="rs">${esc(r.reason)}</div><div class="conf">AI信頼度<div class="bar"><i style="width:${Math.round(r.conf*100)}%"></i></div>${Math.round(r.conf*100)}%</div>${cl}${acts}${st}</div>`;
+  }).join('');
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function standings(){
+  return [...cars].sort((a,b)=>{
+    const ra=a.state==='retired'?1:0,rb=b.state==='retired'?1:0;if(ra!==rb)return ra-rb;
+    const ca=Math.max(a.comp,0),cb=Math.max(b.comp,0);
+    if(a.finished&&b.finished)return cb-ca||a.finishOrder-b.finishOrder;
+    if(a.finished&&ca>=cb)return -1;if(b.finished&&cb>=ca)return 1;
+    return b.s-a.s;
+  });
+}
+function renderTower(){
+  const st=standings(),ld=st[0];
+  $('tower').innerHTML=st.map((c,i)=>{
+    let gap='';
+    if(i===0)gap=c.finished?'FIN':'LEADER';
+    else if(c.state==='retired')gap='';
+    else{const dl=ld.s-c.s;gap=dl>=L&&!(c.finished)?`+${Math.floor(dl/L)}L`:'+'+(dl/52).toFixed(1);if(c.finished)gap=(Math.max(ld.comp,0)>c.comp?`+${ld.comp-c.comp}L`:'+'+(c.finishTime-ld.finishTime).toFixed(1));}
+    let s='';
+    if(c.state==='retired')s='<span class="stt out">DNF</span>';
+    else if(c.finished)s='<span class="stt out">FIN</span>';
+    else if(c.state==='stopped'||c.stopT>=1)s='<span class="stt bad">停止</span>';
+    else if(c.state==='spin')s='<span class="stt bad">スピン</span>';
+    else if(!onTrack(c))s='<span class="stt warn">コース外</span>';
+    else if(c.state==='slow')s='<span class="stt warn">低速</span>';
+    else if(c.blue)s='<span class="stt blue">青旗</span>';
+    const pen=(c.penalty?`+${c.penalty}s`:'')+(c.warnings?` ⚠${c.warnings}`:'');
+    return `<tr data-c="${c.id}" class="${G.selected===c.id?'sel':''}"><td class="mono">${i+1}</td><td><span class="cdot" style="background:${c.color}"></span><b>${c.code}</b> <span style="color:var(--ink-faint);font-size:11px">#${c.num}</span></td><td class="mono">${Math.max(0,c.comp)}</td><td class="mono">${gap}</td><td>${s}</td><td class="pen">${pen}</td></tr>`;
+  }).join('');
+  $('bestLap').textContent=G.bestLap?`BEST ${G.bestLap.c} ${fmtT(G.bestLap.t)}`:'';
+}
+function renderLog(){
+  G.logDirty=false;
+  $('log').innerHTML=logs.slice(0,80).map(l=>`<div><time>${clock(l.t)}</time><span class="${l.cls}">${esc(l.text)}</span></div>`).join('')||'<div style="color:var(--ink-faint)">ログはまだありません</div>';
+}
+function updateHeader(){
+  const ld=leader();const lap=ld?Math.min(settings.laps,Math.max(0,ld.comp)+1):0;
+  $('lapNow').textContent=G.started?`LAP ${lap}/${settings.laps}`:`LAP 0/${settings.laps}`;
+  $('raceTime').textContent=clock(G.t);
+  const b=$('globalBadge');
+  b.className='badge '+(!G.started?'pre':G.chequered?'chk':G.state==='green'?'':G.state);
+  b.textContent=!G.started?'GRID':G.chequered?'FINISH':G.state==='green'?'GREEN':G.state==='vsc'?'VSC':G.state==='sc'?'SAFETY CAR':'RED FLAG';
+  $('aiCars').textContent=cars.filter(onMap).length;$('aiAnom').textContent=G.anomalies||0;$('aiDecisions').textContent=G.decisions;
+}
+function showResults(){
+  const st=standings().map(c=>({c,total:c.finished?c.finishTime+c.penalty:Infinity}));
+  const fin=st.filter(x=>x.c.finished);const maxLap=Math.max(...fin.map(x=>x.c.comp));
+  fin.sort((a,b)=>(b.c.comp-a.c.comp)||(a.total-b.total));
+  const rest=st.filter(x=>!x.c.finished);
+  const lt=fin.length?fin[0].total:0;
+  $('results').innerHTML=[...fin,...rest].map((x,i)=>`<tr><td class="mono">${i+1}</td><td><span class="cdot" style="background:${x.c.color}"></span><b>${x.c.code}</b> ${x.c.name}</td><td class="mono">${Math.max(0,x.c.comp)}</td><td class="mono">${!x.c.finished?'DNF':i===0?clock(x.total):x.c.comp<maxLap?`+${maxLap-x.c.comp}L`:'+'+(x.total-lt).toFixed(1)+'s'}</td><td class="pen">${x.c.penalty?'+'+x.c.penalty+'s':''}</td></tr>`).join('');
+  $('dlgResults').showModal();
+}
+
+/* =========================================================
+   メインループ
+   ========================================================= */
+let uiTimer=0;
+function frame(now){
+  let rdt=Math.min(0.1,(now-G.lastFrame)/1000);G.lastFrame=now;
+  if(G.running&&!G.done){
+    let simDt=rdt*settings.speed;const step=1/30;
+    while(simDt>1e-6){
+      const dt=Math.min(step,simDt);simDt-=dt;G.t+=dt;
+      for(const c of cars)updateCar(c,dt);
+      contacts();overtakeWatch();
+      G.aiTimer+=dt;if(G.aiTimer>=0.5){G.aiTimer-=0.5;aiCycle();}
+    }
+    if(G.chequered&&cars.every(c=>!onMap(c))){G.done=true;G.running=false;log('全車フィニッシュ — レース終了','g');setTimeout(showResults,600);$('btnStart').textContent='結果';}
+  }
+  draw();
+  uiTimer+=rdt;
+  if(uiTimer>0.25){uiTimer=0;renderTower();updateHeader();if(G.recDirty)renderRecs();if(G.logDirty)renderLog();
+    if(posts.some(p=>p.greenUntil>G.t-0.5&&p.greenUntil<G.t+0.5))renderPosts();}
+  requestAnimationFrame(frame);
+}
+
+/* =========================================================
+   イベント
+   ========================================================= */
+$('btnStart').onclick=()=>{
+  if(G.done){showResults();return;}
+  if(!G.started){G.started=true;G.running=true;G.state='green';log(`レーススタート（${settings.laps}周）`,'g');speak('グリーンフラッグ、レーススタート');$('btnStart').textContent='一時停止';renderPosts();renderRecs();return;}
+  G.running=!G.running;$('btnStart').textContent=G.running?'一時停止':'再開';
+};
+$('speedSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;settings.speed=+b.dataset.s;document.querySelectorAll('#speedSeg button').forEach(x=>x.classList.toggle('on',x===b));saveSettings();};
+$('modeToggle').onclick=e=>{const b=e.target.closest('button');if(!b)return;settings.mode=b.dataset.m;syncToggles();saveSettings();
+  if(settings.mode==='auto')for(const r of recs)if(r.status==='pending'&&r.kind!=='penalty'&&r.conf>=settings.thr)applyRec(r,'auto');renderRecs();};
+$('btnVoice').onclick=()=>{settings.voice=!settings.voice;syncToggles();saveSettings();if(settings.voice)speak('音声アナウンスを有効にしました');};
+function syncToggles(){
+  document.querySelectorAll('#modeToggle button').forEach(x=>x.classList.toggle('on',x.dataset.m===settings.mode));
+  $('btnVoice').textContent='音声 '+(settings.voice?'ON':'OFF');$('btnVoice').classList.toggle('on',settings.voice);
+  document.querySelectorAll('#speedSeg button').forEach(x=>x.classList.toggle('on',+x.dataset.s===settings.speed));
+  $('lapsSel').value=String(settings.laps);$('rateSel').value=String(settings.rate);
+}
+$('posts').onclick=e=>{const b=e.target.closest('.post');if(!b||!G.started)return;const p=+b.dataset.p;const seq=['none','yellow','double','white'];setPostFlag(p,seq[(seq.indexOf(posts[p].flag)+1)%4],'手動');};
+document.querySelector('.globals').onclick=e=>{const b=e.target.closest('button');if(!b||!G.started)return;setGlobal(b.dataset.g,'手動');};
+$('recList').onclick=e=>{const b=e.target.closest('button[data-a]');if(!b)return;const r=recs.find(x=>x.id===+b.dataset.id);if(!r)return;
+  if(b.dataset.a==='ok')applyRec(r,'manual');else if(b.dataset.a==='no')rejectRec(r);else askClaude(r);renderRecs();renderLog();};
+$('tower').onclick=e=>{const tr=e.target.closest('tr');if(!tr)return;const id=+tr.dataset.c;G.selected=G.selected===id?null:id;renderTower();};
+document.querySelector('.scen').onclick=e=>{const b=e.target.closest('button');if(b)inject(b.dataset.x);};
+$('lapsSel').onchange=e=>{settings.laps=+e.target.value;saveSettings();updateHeader();};
+$('rateSel').onchange=e=>{settings.rate=+e.target.value;saveSettings();};
+$('btnReset').onclick=()=>{reset();};
+function openSettings(){$('thrSel').value=String(settings.thr);$('apiKey').value=settings.apiKey||'';$('modelSel').value=settings.model;$('saveKey').checked=!!settings.keepKey;$('dlgSettings').showModal();}
+$('btnSettings').onclick=openSettings;
+$('dlgClose').onclick=()=>$('dlgSettings').close();
+$('dlgSave').onclick=()=>{settings.thr=+$('thrSel').value;settings.apiKey=$('apiKey').value.trim();settings.model=$('modelSel').value;settings.keepKey=$('saveKey').checked;saveSettings();$('dlgSettings').close();};
+$('resClose').onclick=()=>$('dlgResults').close();
+$('resAgain').onclick=()=>{$('dlgResults').close();reset();};
+window.addEventListener('resize',resize);
+if(window.ResizeObserver)new ResizeObserver(resize).observe(cv);
+
+reset();syncToggles();resize();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
